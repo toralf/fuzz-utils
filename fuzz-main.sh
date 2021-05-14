@@ -119,7 +119,8 @@ function plotData() {
 
 
 function checkForFindings() {
-  ls -l /tmp/fuzzing/${software}_*/default/{crashes,hangs}/* 2>/dev/null
+  # ignore hangs for now
+  ls -l /tmp/fuzzing/${software}_*/default/crashes/* 2>/dev/null
 }
 
 

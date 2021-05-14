@@ -62,8 +62,8 @@ function startAFuzzer()  {
 
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $fuzzer_pid; then
     echo " failed to put $fuzzer_pid into CGroup"
+    return 1
   fi
-  echo
 }
 
 
@@ -83,12 +83,7 @@ function runFuzzers() {
           if ! ((diff=diff-1)); then
             break
           fi
-        else
-          echo " something failed with $fuzzer"
         fi
-      else
-        echo " skipped: $fuzzer $exe $idir $add"
-        echo
       fi
     done
   elif [[ $diff -lt 0 ]]; then
@@ -105,6 +100,7 @@ function runFuzzers() {
       fi
     done
   fi
+  return 0
 }
 
 
@@ -114,6 +110,7 @@ function plotData() {
     cd $f
     afl-plot ./default ./ &>/dev/null || continue
   done
+  return 0
 }
 
 
@@ -121,6 +118,7 @@ function plotData() {
 function checkForFindings() {
   # ignore hangs for now
   ls -l /tmp/fuzzing/${software}_*/default/crashes/* 2>/dev/null
+  return 0
 }
 
 

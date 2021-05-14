@@ -1,5 +1,5 @@
 # fuzz-utils
-fuzz Tor, OpenSSL and probably more using https://github.com/AFLplusplus/AFLplusplus/
+fuzz Tor, OpenSSL and probably more using [AFL++](https://github.com/AFLplusplus/AFLplusplus/)
 
 `fuzz-main.sh` contains the logic, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` are target specific helper libs.
 Run it via cron, eg.:

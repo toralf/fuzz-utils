@@ -38,8 +38,9 @@ function buildFuzzers() {
 
 
 function getFuzzers() {
+  cd ~
   ls openssl/fuzz/corpora/ |\
-  while read fuzzer
+  while read -r fuzzer
   do
     exe=~/openssl/fuzz/$fuzzer
     idir=~/openssl/fuzz/corpora/$fuzzer

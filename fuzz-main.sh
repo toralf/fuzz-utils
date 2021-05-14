@@ -58,7 +58,7 @@ function startAFuzzer()  {
   cd $odir
   nohup nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &>./fuzz.log &
   local fuzzer_pid=$!
-  echo -e " $software : $fuzzer  $fuzzer_pid"
+  echo -e " $software $fuzzer"
 
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $fuzzer_pid; then
     echo " failed to put $fuzzer_pid into CGroup"
@@ -73,6 +73,9 @@ function runFuzzers() {
   local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
   ((diff = $wanted - $running))
   if [[ $diff -gt 0 ]]; then
+    if repoWasCloned || repoWasUpdated; then
+      buildFuzzers
+    fi
     echo "starting $diff fuzzer(s) ..."
     getFuzzers |\
     shuf |\
@@ -136,10 +139,10 @@ function updateRepo(){
 set -eu
 export LANG=C.utf8
 
-export CC="/usr/bin/afl-cc"
-export CXX="/usr/bin/afl-c++"
+export CC="/usr/bin/afl-clang-fast"
+export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
-export CXXFLAGS="-O2 -pipe -march=native"
+export CXXFLAGS="$CFLAGS"
 
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
@@ -149,7 +152,6 @@ export AFL_NO_AFFINITY=1
 export GIT_PAGER="cat"
 export PAGER="cat"
 
-cd ~
 software=${1?software is missing}
 source $(dirname $0)/fuzz-lib-${software}.sh
 
@@ -165,8 +167,7 @@ do
         ;;
     p)  plotData
         ;;
-    r)  if repoWasCloned || repoWasUpdated; then buildFuzzers; fi
-        runFuzzers "$OPTARG"
+    r)  runFuzzers "$OPTARG"
         ;;
   esac
 done

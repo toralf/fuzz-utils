@@ -45,7 +45,6 @@ function buildFuzzers() {
   make clean
   make micro-revision.i   # https://trac.torproject.org/projects/tor/ticket/29520
   make -j8 fuzzers
-  echo
 }
 
 

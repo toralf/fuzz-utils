@@ -1,19 +1,20 @@
 # specific routines to fuzz OpenSSL
 
 
-function cloneRepo()  {
-  cd ~
-  git clone https://github.com/openssl/openssl.git
+function repoWasCloned()  {
+  if [[ ! -d ~/$software ]]; then
+    cd ~
+    git clone https://github.com/openssl/openssl.git
+    return $?
+  fi
+  return 1
 }
-
 
 
 function repoWasUpdated() {
   if updateRepo ~/$software; then
-    make clean
     return 0
   fi
-
   return 1
 }
 
@@ -27,13 +28,9 @@ function buildFuzzers() {
     enable-ec_nistp_64_gcc_128 -fno-sanitize=alignment
     --debug"
 
-  if ! ./config $options; then
-    return 3
-  fi
-
-  if ! nice make -j8; then
-    return 4
-  fi
+  ./config $options
+  make clean
+  make -j8
 }
 
 

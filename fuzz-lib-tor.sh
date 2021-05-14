@@ -1,19 +1,23 @@
 # specific routines to fuzz Tor
 
 
-function cloneRepo()  {
-  cd ~
-  git clone https://git.torproject.org/fuzzing-corpora.git
-  git clone https://git.torproject.org/tor.git
+function repoWasCloned()  {
+  if [[ ! -d ~/$software ]]; then
+    cd ~
+    # corpora is unfortunately a separate repo
+    git clone https://git.torproject.org/fuzzing-corpora.git
+    git clone https://git.torproject.org/tor.git
+    return $?
+  fi
+  return 1
 }
 
 
 function repoWasUpdated() {
-  if updateRepo ~/fuzzing-corpora || updateRepo ~/$software; then
-    make clean
+  if updateRepo ~/$software; then
+    updateRepo ~/fuzzing-corpora
     return 0
   fi
-
   return 1
 }
 
@@ -23,9 +27,7 @@ function buildFuzzers() {
 
   if [[ ! -x ./configure ]]; then
     rm -f Makefile
-    if ! ./autogen.sh 2>&1; then
-      return 2
-    fi
+    ./autogen.sh
   fi
 
   if [[ ! -f Makefile ]]; then
@@ -37,19 +39,12 @@ function buildFuzzers() {
     local override="
         --enable-module-dirauth --enable-zstd-advanced-apis --enable-unittests --disable-coverage
     "
-    if ! ./configure $gentoo $override; then
-      return 3
-    fi
+    ./configure $gentoo $override
   fi
 
-  # https://trac.torproject.org/projects/tor/ticket/29520
-  if ! make micro-revision.i 2>&1; then
-    return 4
-  fi
-
-  if ! nice make -j8 fuzzers 2>&1; then
-    return 5
-  fi
+  make clean
+  make micro-revision.i   # https://trac.torproject.org/projects/tor/ticket/29520
+  make -j8 fuzzers
   echo
 }
 

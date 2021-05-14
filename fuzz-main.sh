@@ -117,8 +117,7 @@ function plotData() {
 
 function checkForFindings() {
   # ignore hangs for now
-  ls -l /tmp/fuzzing/${software}_*/default/crashes/* 2>/dev/null
-  return 0
+  ls -l /tmp/fuzzing/${software}_*/default/crashes/* 2>/dev/null || return 0
 }
 
 
@@ -159,15 +158,16 @@ lock
 trap cleanUp QUIT TERM EXIT
 
 shift
-while getopts bcfpr:u opt
+while getopts fpr: opt
 do
   case $opt in
-    b)  buildFuzzers ;;
-    c)  cloneRepo ;;
-    f)  checkForFindings ;;
-    p)  plotData ;;
-    r)  runFuzzers "$OPTARG" ;;
-    u)  if repoWasUpdated; then buildFuzzers; fi ;;
+    f)  checkForFindings
+        ;;
+    p)  plotData
+        ;;
+    r)  if repoWasCloned || repoWasUpdated; then buildFuzzers; fi
+        runFuzzers "$OPTARG"
+        ;;
   esac
 done
 

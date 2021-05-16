@@ -121,7 +121,7 @@ function startAFuzzer()  {
   mkdir -p $odir
 
   cp $exe $odir
-  # TODO. move this quirk to fuzz-lib-openssl.sh
+  # TODO: move this quirk to fuzz-lib-openssl.sh
   if [[ $software = "openssl" ]]; then
     cp ${exe}-test $odir
   fi
@@ -138,21 +138,22 @@ function startAFuzzer()  {
 set -eu
 export LANG=C.utf8
 
+export GIT_PAGER="cat"
+export PAGER="cat"
+
+# any change here might require a rebuild of $software
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
 export CXXFLAGS="$CFLAGS"
-
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
-export AFL_NO_AFFINITY=1
+# export AFL_NO_AFFINITY=1
 export AFL_SHUFFLE_QUEUE=1
 
-export GIT_PAGER="cat"
-export PAGER="cat"
+jobs=8  # parallel make jobs in buildSoftware()
 
-jobs=8
 lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp QUIT TERM EXIT

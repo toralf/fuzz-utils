@@ -2,15 +2,25 @@
 fuzz Tor, OpenSSL and probably more using [AFL++](https://github.com/AFLplusplus/AFLplusplus/)
 
 `fuzz-main.sh` contains the logic, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` are target specific helper libs.
+`simple-http-server.py` is a simple helper to watch progres.
+
 Run it via cron, eg.:
 
 ```
-@reboot mkdir /tmp/fuzzing; (cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py &>/tmp/simple-http-server-fuzzing.log &)
+@reboot mkdir /tmp/fuzzing; cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --port 12345 --address x.y.z &>/tmp/simple-http-server-fuzzing.log
 
-@reboot /opt/fuzz-utils/fuzz-main.sh openssl -r 4
-@reboot /opt/fuzz-utils/fuzz-main.sh tor     -r 4
+@reboot /opt/fuzz-utils/fuzz-main.sh -s openssl -r 2; /opt/fuzz-utils/fuzz-main.sh -s tor -r 2
+@hourly /opt/fuzz-utils/fuzz-main.sh -s openssl -r 2; /opt/fuzz-utils/fuzz-main.sh -s tor -r 2
 
-9 * * * * /opt/fuzz-utils/fuzz-main.sh openssl -f -p -r 4
-9 * * * * /opt/fuzz-utils/fuzz-main.sh tor     -f -p -r 4
+*/5 * * * * /opt/fuzz-utils/fuzz-main.sh -k -p
+
 ```
+and watch it:
+
+```bash
+watch bash -c "pgrep entrypoint | xargs -n 1 pstree -Ulnpu"
+```
+
+
+You should mount `/tmp` at a *tmpfs* to avoid heavy I/O to your disks.
 

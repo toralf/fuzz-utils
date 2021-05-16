@@ -1,5 +1,4 @@
 #!/bin/sh
-#
 # set -x
 
 # helper to put given fuzzer PID under CGroup control
@@ -46,6 +45,6 @@ fi
 
 if ! PutIntoCgroup local/$1 $2; then
   # needed: https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
-  echo " failed to put pid $2 into cgroup /local/$1"
+  echo " PutIntoCgroup failed: $@"
   exit 1
 fi

@@ -15,7 +15,9 @@ Run it via cron, eg.:
 */5 * * * * /opt/fuzz-utils/fuzz-main.sh -k -p
 
 ```
-and watch it:
+Crashes are rsynced to your HOME directory.
+Point your browser to http://x.y.z:12345 to see few metrics.
+Watch UNIX processes via:
 
 ```bash
 watch bash -c "pgrep entrypoint | xargs -n 1 pstree -Ulnpu"

@@ -1,25 +1,13 @@
 # specific routines to fuzz OpenSSL
 
 
-function repoWasCloned()  {
-  if [[ ! -d ~/$software ]]; then
-    cd ~
-    git clone https://github.com/openssl/openssl.git
-    return $?
-  fi
-  return 1
+function buildSoftware() {
+  cd ~/$software
+  make -j $jobs
 }
 
 
-function repoWasUpdated() {
-  if updateRepo ~/$software; then
-    return 0
-  fi
-  return 1
-}
-
-
-function buildFuzzers() {
+function configureSoftware() {
   cd ~/$software
 
   local options="enable-fuzz-afl no-shared no-module
@@ -31,7 +19,6 @@ function buildFuzzers() {
 
   ./config $options
   make clean
-  make -j8
 }
 
 
@@ -43,6 +30,23 @@ function getFuzzers() {
     exe=~/openssl/fuzz/$fuzzer
     idir=~/openssl/fuzz/corpora/$fuzzer
 
-    echo $fuzzer $exe $idir
+    if [[ -x $exe && -d $idir ]]; then
+      echo $fuzzer $exe $idir
+    fi
   done
+}
+
+
+function softwareWasCloned()  {
+  if [[ ! -d ~/$software ]]; then
+    cd ~
+    git clone https://github.com/openssl/$software.git
+    return 0
+  fi
+  return 1
+}
+
+
+function softareWasUpdated()  {
+  repoWasUpdated ~/$software
 }

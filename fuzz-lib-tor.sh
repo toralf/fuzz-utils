@@ -1,28 +1,15 @@
 # specific routines to fuzz Tor
 
 
-function repoWasCloned()  {
-  if [[ ! -d ~/$software ]]; then
-    cd ~
-    # corpora is unfortunately a separate repo
-    git clone https://git.torproject.org/fuzzing-corpora.git
-    git clone https://git.torproject.org/tor.git
-    return $?
-  fi
-  return 1
+
+function buildSoftware() {
+  cd ~/$software
+  make micro-revision.i   # https://trac.torproject.org/projects/tor/ticket/29520
+  make -j $jobs fuzzers
 }
 
 
-function repoWasUpdated() {
-  if updateRepo ~/$software; then
-    updateRepo ~/fuzzing-corpora
-    return 0
-  fi
-  return 1
-}
-
-
-function buildFuzzers() {
+function configureSoftware() {
   cd ~/$software
 
   if [[ ! -x ./configure ]]; then
@@ -43,8 +30,6 @@ function buildFuzzers() {
   fi
 
   make clean
-  make micro-revision.i   # https://trac.torproject.org/projects/tor/ticket/29520
-  make -j8 fuzzers
 }
 
 
@@ -60,6 +45,29 @@ function getFuzzers() {
     dict=~/$software/src/test/fuzz/dict/$fuzzer
     [[ -s $dict ]] && add="-x $dict" || add=""
 
-    echo $fuzzer $exe $idir $add
+    if [[ -x $exe && -d $idir ]]; then
+      echo $fuzzer $exe $idir $add
+    fi
   done
+}
+
+
+function softwareWasCloned()  {
+  if [[ ! -d ~/$software ]]; then
+    cd ~
+    git clone https://git.torproject.org/fuzzing-corpora.git
+    git clone https://git.torproject.org/$software.git
+    return 0
+  fi
+  return 1
+}
+
+
+# bash optimizes B away if A is false: "if [[ A || B ]]
+function softareWasUpdated()  {
+  if repoWasUpdated ~/$software; then
+    repoWasUpdated ~/fuzzing-corpora || true
+    return 0
+  fi
+  return 1
 }

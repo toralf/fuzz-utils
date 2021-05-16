@@ -23,7 +23,7 @@ function PutIntoCgroup() {
   for i in cpu memory
   do
     echo      1 > /sys/fs/cgroup/$i/$name/notify_on_release
-    echo "$pid" > /sys/fs/cgroup/$i/$name/tasks || return $?
+    echo "$pid" > /sys/fs/cgroup/$i/$name/tasks
   done
 }
 
@@ -42,12 +42,10 @@ fi
 if [[ $# -ne 2 ]]; then
   echo "wrong # of args"
   exit 1
-elif [[ -z "$1" ]]; then
-  exit 1
-elif [[ "${2//[0-9]}" ]]; then
-  echo "arg 2 is not an integer"
-  exit 1
 fi
 
-# 1:name 2:pid
-PutIntoCgroup local/${1##*/} $2
+if ! PutIntoCgroup local/$1 $2; then
+  # needed: https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
+  echo " failed to put pid $2 into cgroup /local/$1"
+  exit 1
+fi

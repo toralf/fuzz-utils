@@ -2,11 +2,37 @@
 # set -x
 
 
-# main entrypoint to start/stop fuzzers and inspect their outcome
+# start/stop fuzzers and keep their outcome
 
 
-# simple lock to avoid being run in parallel
-#
+function cleanUp()  {
+  local rc=${1:-$?}
+  trap - QUIT TERM EXIT
+
+  rm -f "$lck"
+  exit $rc
+}
+
+
+function getCommitId() {
+  git log --max-count=1 --pretty=format:%H | cut -c1-12
+}
+
+
+function keepFindings() {
+  find /tmp/fuzzing/ -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" |\
+  while read f
+  do
+    sed -e 's,/default/crashes/.*,,g' <<< $f
+  done |\
+  sort -u |\
+  while read d
+  do
+    rsync -av /tmp/fuzzing/$d ~
+  done
+}
+
+
 function lock()  {
   if [[ -s $lck ]]; then
     echo -n " found $lck: "
@@ -22,17 +48,61 @@ function lock()  {
 }
 
 
-function cleanUp()  {
-  local rc=${1:-$?}
-  trap - QUIT TERM EXIT
-
-  rm -f "$lck"
-  exit $rc
+function plotData() {
+  for d in $(ls -d /tmp/fuzzing/* 2>/dev/null)
+  do
+    afl-plot $d/default $d &>/dev/null || continue
+  done
 }
 
 
-function getGitId() {
-  git log --max-count=1 --pretty=format:%H | cut -c1-12
+function repoWasUpdated() {
+  cd $1
+  local old=$(getCommitId)
+  git pull 1>/dev/null
+  local new=$(getCommitId)
+  [[ $old != $new ]]
+}
+
+
+function runFuzzers() {
+  local wanted=$1
+  local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
+  ((diff = $wanted - $running))
+  if [[ $diff -gt 0 ]]; then
+    if softwareWasCloned || softareWasUpdated; then
+      configureSoftware
+    fi
+    echo " building $software ..."
+    buildSoftware
+    echo -n "starting $diff $software: "
+    getFuzzers |\
+    shuf -n $diff |\
+    while read -r line
+    do
+      startAFuzzer $line
+    done
+
+  elif [[ $diff -lt 0 ]]; then
+    ((diff=-diff))
+    echo -n "stopping $diff $software: "
+    ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |\
+    shuf -n $diff |\
+    while read d
+    do
+      stats=/tmp/fuzzing/$(basename $d)/default/fuzzer_stats
+      if [[ -s $stats ]]; then
+        pid=$(awk ' /^fuzzer_pid / { print $3 } ' $stats)
+        echo -n " stats pid: $pid"
+        kill -15 $pid
+      else
+        tasks=$(cat $d/tasks)
+        echo -n " cgroup tasks: $tasks ..."
+        kill -15 $tasks
+      fi
+    done
+  fi
+  echo
 }
 
 
@@ -44,93 +114,22 @@ function startAFuzzer()  {
   local add=${@:-}
 
   cd ~/$software
-  local git_id=$(getGitId)
+  local git_id=$(getCommitId)
 
   local fdir=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_${git_id}
   local odir=/tmp/fuzzing/$fdir
   mkdir -p $odir
 
   cp $exe $odir
+  # TODO. move this quirk to fuzz-lib-openssl.sh
   if [[ $software = "openssl" ]]; then
     cp ${exe}-test $odir
   fi
 
   cd $odir
-  nohup nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &>./fuzz.log &
-  local fuzzer_pid=$!
-  echo -e " $software $fuzzer"
-
-  if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $fuzzer_pid; then
-    echo " failed to put $fuzzer_pid into CGroup"
-    return 1
-  fi
-}
-
-
-function runFuzzers() {
-  local wanted=$1
-
-  local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
-  ((diff = $wanted - $running))
-  if [[ $diff -gt 0 ]]; then
-    if repoWasCloned || repoWasUpdated; then
-      buildFuzzers
-    fi
-    echo "starting $diff fuzzer(s) ..."
-    getFuzzers |\
-    shuf |\
-    while read -r fuzzer exe idir add
-    do
-      if [[ -x $exe && -d $idir ]]; then
-        if startAFuzzer $fuzzer $exe $idir $add; then
-          if ! ((diff=diff-1)); then
-            break
-          fi
-        fi
-      fi
-    done
-  elif [[ $diff -lt 0 ]]; then
-    echo "stopping $diff fuzzer(s) ..."
-    awk '/^fuzzer_pid / { print $3 }' /tmp/fuzzing/${software}_*/default/fuzzer_stats |\
-    while read -r fuzzer_pid
-    do
-      if kill -0 $fuzzer_pid 2>/dev/null; then
-        echo " killing $fuzzer_pid"
-        kill -15 $fuzzer_pid
-          if ! ((diff=diff+1)); then
-            break
-          fi
-      fi
-    done
-  fi
-  return 0
-}
-
-
-function plotData() {
-  for f in $(ls -d /tmp/fuzzing/${software}_* 2>/dev/null)
-  do
-    cd $f
-    afl-plot ./default ./ &>/dev/null || continue
-  done
-  return 0
-}
-
-
-
-function checkForFindings() {
-  # ignore hangs for now
-  ls -l /tmp/fuzzing/${software}_*/default/crashes/* 2>/dev/null || return 0
-}
-
-
-
-function updateRepo(){
-  cd $1
-  local old=$(getGitId)
-  git pull 1>/dev/null
-  local new=$(getGitId)
-  [[ $old != $new ]]
+  nice -n 1 bash -c "/usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) 2>&1 | ansifilter > ./fuzz.log" &
+  sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
+  echo -n " $fuzzer"
 }
 
 
@@ -148,26 +147,27 @@ export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
 export AFL_NO_AFFINITY=1
+export AFL_SHUFFLE_QUEUE=1
 
 export GIT_PAGER="cat"
 export PAGER="cat"
 
-software=${1?software is missing}
-source $(dirname $0)/fuzz-lib-${software}.sh
-
-lck=/tmp/$(basename $0).${software}.lock
+jobs=8
+lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp QUIT TERM EXIT
 
-shift
-while getopts fpr: opt
+while getopts kpr:s: opt
 do
   case $opt in
-    f)  checkForFindings
+    k)  keepFindings
         ;;
     p)  plotData
         ;;
     r)  runFuzzers "$OPTARG"
+        ;;
+    s)  software="$OPTARG"
+        source $(dirname $0)/fuzz-lib-${software}.sh
         ;;
   esac
 done

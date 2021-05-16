@@ -127,7 +127,7 @@ function startAFuzzer()  {
   fi
 
   cd $odir
-  nice -n 1 bash -c "/usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) 2>&1 | ansifilter > ./fuzz.log" &
+  nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &> >(ansifilter > ./fuzz.log) &
   sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
   echo -n " $fuzzer"
 }

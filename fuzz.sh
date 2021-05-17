@@ -2,7 +2,7 @@
 # set -x
 
 
-# start/stop fuzzers and keep their outcome
+# start/stop fuzzers, check for findings and plot metrics
 
 
 function cleanUp()  {
@@ -81,19 +81,7 @@ function runFuzzers() {
     buildSoftware
 
     echo -n "starting $diff $software: "
-    # prefer non-running, but at least start $diff
-    (
-      getFuzzers |\
-      while read f
-      do
-        if ! ls -d /sys/fs/cgroup/cpu/local/${software}_* &>/dev/null; then
-          echo $f
-        fi
-      done |\
-      shuf -n $diff
-      getFuzzers | shuf -n $diff
-    ) |\
-    head -n $diff |\
+    throwFuzzers $diff |\
     while read -r line
     do
       startAFuzzer $line
@@ -146,6 +134,25 @@ function startAFuzzer()  {
   nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &> ./fuzz.log &
   sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
   echo -n "    $fuzzer"
+}
+
+
+function throwFuzzers()  {
+  local n=$1
+  (
+    # prefer non-running, but at least return $n
+    getFuzzers |\
+    while read f
+    do
+      if ! ls -d /sys/fs/cgroup/cpu/local/${software}_* &>/dev/null; then
+        echo $f
+      fi
+    done |\
+    shuf -n $n
+
+    getFuzzers | shuf -n $n
+  ) |\
+  head -n $n
 }
 
 

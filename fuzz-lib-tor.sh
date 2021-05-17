@@ -53,13 +53,16 @@ function getFuzzers() {
 
 
 function softwareWasCloned()  {
-  if [[ ! -d ~/$software ]]; then
-    cd ~
-    git clone https://git.torproject.org/fuzzing-corpora.git
-    git clone https://git.torproject.org/$software.git
-    return 0
+  if [[ -d ~/fuzzing-corpora && -d ~/$software ]]; then
+    return 1
   fi
-  return 1
+  cd ~
+  if [[ ! -d ~/fuzzing-corpora ]]; then
+    git clone https://git.torproject.org/fuzzing-corpora.git
+  fi
+  if [[ ! -d ~/$software ]]; then
+    git clone https://git.torproject.org/$software.git
+  fi
 }
 
 

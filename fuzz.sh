@@ -68,7 +68,11 @@ function repoWasUpdated() {
 function runFuzzers() {
   local wanted=$1
   local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
-  ((diff = $wanted - $running))
+
+  if ! ((diff = $wanted - $running)); then
+    return 0
+  fi
+
   if [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softareWasUpdated; then
       configureSoftware
@@ -76,8 +80,19 @@ function runFuzzers() {
     echo " building $software ..."
     buildSoftware
     echo -n "starting $diff $software: "
-    getFuzzers |\
-    shuf -n $diff |\
+
+    # prefer non-running, but at least start $diff
+    (
+      getFuzzers |\
+      while read f
+      do
+        if ! ls -d /sys/fs/cgroup/cpu/local/${software}_* &>/dev/null; then
+          echo $f
+        fi
+      done |\
+      shuf -n $diff
+      getFuzzers | shuf -n $diff
+    ) |\
     while read -r line
     do
       startAFuzzer $line
@@ -90,14 +105,15 @@ function runFuzzers() {
     shuf -n $diff |\
     while read d
     do
+      # stats file is just created after a short while
       stats=/tmp/fuzzing/$(basename $d)/default/fuzzer_stats
       if [[ -s $stats ]]; then
         pid=$(awk ' /^fuzzer_pid / { print $3 } ' $stats)
-        echo -n " stats pid: $pid"
+        echo -n "    stats: $pid"
         kill -15 $pid
       else
         tasks=$(cat $d/tasks)
-        echo -n " cgroup tasks: $tasks ..."
+        echo -n "    cgroup: $tasks"
         kill -15 $tasks
       fi
     done
@@ -129,7 +145,7 @@ function startAFuzzer()  {
   cd $odir
   nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &> >(ansifilter > ./fuzz.log) &
   sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
-  echo -n " $fuzzer"
+  echo -n "    $fuzzer"
 }
 
 
@@ -158,10 +174,10 @@ lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp QUIT TERM EXIT
 
-while getopts kpr:s: opt
+while getopts fpr:s: opt
 do
   case $opt in
-    k)  keepFindings
+    f)  keepFindings
         ;;
     p)  plotData
         ;;

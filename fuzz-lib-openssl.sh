@@ -38,12 +38,11 @@ function getFuzzers() {
 
 
 function softwareWasCloned()  {
-  if [[ ! -d ~/$software ]]; then
-    cd ~
-    git clone https://github.com/openssl/$software.git
-    return 0
+  if [[ -d ~/$software ]]; then
+    return 1
   fi
-  return 1
+  cd ~
+  git clone https://github.com/openssl/$software.git
 }
 
 

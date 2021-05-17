@@ -20,7 +20,7 @@ Point your browser to http://x.y.z:12345 to see few metrics.
 Watch UNIX processes via:
 
 ```bash
-watch -c "pgrep entrypoint | xargs -n 1 pstree -UlnpuTa"
+watch -c "pgrep afl | xargs -n 1 pstree -UlnpuTa"
 ```
 
 

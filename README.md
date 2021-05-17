@@ -9,10 +9,10 @@ Run it via cron, eg.:
 ```
 @reboot mkdir /tmp/fuzzing; cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --port 12345 --address x.y.z &>/tmp/simple-http-server-fuzzing.log
 
-@reboot /opt/fuzz-utils/fuzz.sh -s openssl -r 2; /opt/fuzz-utils/fuzz.sh -s tor -r 2
-@hourly /opt/fuzz-utils/fuzz.sh -s openssl -r 2; /opt/fuzz-utils/fuzz.sh -s tor -r 2
+@reboot /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
+@hourly /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
 
-*/5 * * * * /opt/fuzz-utils/fuzz.sh -k -p
+*/5 * * * * /opt/fuzz-utils/fuzz.sh -k -p &>/dev/null
 
 ```
 Crashes are rsynced to your HOME directory.

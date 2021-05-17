@@ -12,17 +12,16 @@ Run it via cron, eg.:
 @reboot /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
 @hourly /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
 
-*/5 * * * * /opt/fuzz-utils/fuzz.sh -k -p &>/dev/null
+*/5 * * * * /opt/fuzz-utils/fuzz.sh -f -p &>/dev/null
 
 ```
-Crashes are rsynced to your HOME directory.
-Point your browser to http://x.y.z:12345 to see few metrics.
+Crashes are rsynced to the crontab users HOME directory.
+Point a browser to http://x.y.z:12345 to see few metrics.
 Watch UNIX processes via:
 
 ```bash
 watch -c "pgrep afl | xargs -n 1 pstree -UlnpuTa"
 ```
 
-
-You should mount `/tmp` at a *tmpfs* to avoid heavy I/O to your disks.
+You should mount `/tmp` at a *tmpfs* to avoid heavy I/O stress at your disks.
 

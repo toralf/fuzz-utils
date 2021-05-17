@@ -1,12 +1,13 @@
 # fuzz-utils
 fuzz Tor, OpenSSL and probably more using [AFL++](https://github.com/AFLplusplus/AFLplusplus/)
 
-`fuzz-main.sh` contains the logic, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` are target specific helper libs.
-`simple-http-server.py` is a simple helper to watch progres.
+`fuzz.sh` is the entry point, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` provide target specific helper libs.
+`simple-http-server.py` can be used to delivers metric files.
 
 Run it via cron, eg.:
 
 ```
+# provides http://x.y.z:12345 for AFL metrics data.
 @reboot mkdir /tmp/fuzzing; cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --port 12345 --address x.y.z &>/tmp/simple-http-server-fuzzing.log
 
 @reboot /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
@@ -16,7 +17,6 @@ Run it via cron, eg.:
 
 ```
 Crashes are rsynced to the crontab users HOME directory.
-Point a browser to http://x.y.z:12345 to see few metrics.
 Watch UNIX processes via:
 
 ```bash

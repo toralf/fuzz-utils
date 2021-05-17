@@ -11,15 +11,13 @@ crontab example:
 @reboot mkdir /tmp/fuzzing; cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --port 12345 --address x.y.z &>/tmp/simple-http-server-fuzzing.log
 
 @reboot /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
-@hourly /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
-
-*/5 * * * * /opt/fuzz-utils/fuzz.sh -f -p &>/dev/null
+@hourly /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2 -f -p
 ```
 Crashes are rsynced to the crontab users HOME directory.
 UNIX processes can be watched via:
 
 ```bash
-watch -c "pgrep afl | xargs -n 1 pstree -UlnpuTa"
+watch -c "pgrep afl | xargs -n 1 -r pstree -UlnpuTa"
 ```
 
 Mount `/tmp` at a *tmpfs* to avoid heavy I/O stress to the disk.

@@ -71,16 +71,16 @@ function runFuzzers() {
 
   if ! ((diff = $wanted - $running)); then
     return 0
-  fi
 
-  if [[ $diff -gt 0 ]]; then
+  elif [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softareWasUpdated; then
       configureSoftware
     fi
+
     echo " building $software ..."
     buildSoftware
-    echo -n "starting $diff $software: "
 
+    echo -n "starting $diff $software: "
     # prefer non-running, but at least start $diff
     (
       getFuzzers |\
@@ -93,22 +93,23 @@ function runFuzzers() {
       shuf -n $diff
       getFuzzers | shuf -n $diff
     ) |\
+    head -n $diff |\
     while read -r line
     do
       startAFuzzer $line
     done
 
-  elif [[ $diff -lt 0 ]]; then
-    ((diff=-diff))
+  else
     echo -n "stopping $diff $software: "
+    ((diff=-diff))
     ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |\
     shuf -n $diff |\
     while read d
     do
       # stats file is just created after a short while
-      stats=/tmp/fuzzing/$(basename $d)/default/fuzzer_stats
-      if [[ -s $stats ]]; then
-        pid=$(awk ' /^fuzzer_pid / { print $3 } ' $stats)
+      statfile=/tmp/fuzzing/$(basename $d)/default/fuzzer_stats
+      if [[ -s $statfile ]]; then
+        pid=$(awk ' /^fuzzer_pid / { print $3 } ' $statfile)
         echo -n "    stats: $pid"
         kill -15 $pid
       else
@@ -130,9 +131,8 @@ function startAFuzzer()  {
   local add=${@:-}
 
   cd ~/$software
-  local git_id=$(getCommitId)
 
-  local fdir=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_${git_id}
+  local fdir=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
   local odir=/tmp/fuzzing/$fdir
   mkdir -p $odir
 
@@ -143,7 +143,7 @@ function startAFuzzer()  {
   fi
 
   cd $odir
-  nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &> >(ansifilter > ./fuzz.log) &
+  nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &> ./fuzz.log &
   sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
   echo -n "    $fuzzer"
 }
@@ -157,7 +157,7 @@ export LANG=C.utf8
 export GIT_PAGER="cat"
 export PAGER="cat"
 
-# any change here might require a rebuild of $software
+# any change here usually needs a rebuild of $software to take an effect -> run "make clean" in ~/$softwarea manually
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
@@ -165,7 +165,6 @@ export CXXFLAGS="$CFLAGS"
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
-# export AFL_NO_AFFINITY=1
 export AFL_SHUFFLE_QUEUE=1
 
 jobs=8  # parallel make jobs in buildSoftware()

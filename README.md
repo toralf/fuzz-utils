@@ -13,7 +13,7 @@ crontab example:
 @reboot /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
 @hourly /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2 -f -p
 ```
-Crashes are rsynced to the crontab users HOME directory.
+Crashes are rsynced to the crontab users `$HOME/findings` directory.
 UNIX processes can be watched via:
 
 ```bash

@@ -20,15 +20,26 @@ function getCommitId() {
 
 
 function keepFindings() {
-  find /tmp/fuzzing/ -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" |\
-  while read f
+  ls /tmp/fuzzing/ |\
+  while read -r d
   do
-    sed -e 's,/default/crashes/.*,,g' <<< $f
-  done |\
-  sort -u |\
-  while read d
-  do
-    rsync -av /tmp/fuzzing/$d ~
+    local txz=~/findings/$d.tar.xz
+    local options=""
+    if [[ -f $txz ]]; then
+      options="--newer $txz"
+    fi
+
+    find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options |\
+    while read -r dummy
+    do
+      echo "found sth in $d"
+      rsync -a $d ~/findings/
+      cd ~/findings/
+      chmod -R g+r ./$d
+      chmod g+x ./$d/default{,/queue,/hangs,/crashes}
+      tar -cJpf $txz ./$d
+      break
+    done
   done
 }
 
@@ -118,7 +129,7 @@ function startAFuzzer()  {
   shift 3
   local add=${@:-}
 
-  cd ~/$software
+  cd ~/sources/$software
 
   local fdir=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
   local odir=/tmp/fuzzing/$fdir

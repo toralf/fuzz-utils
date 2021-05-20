@@ -2,13 +2,13 @@
 
 
 function buildSoftware() {
-  cd ~/$software
+  cd ~/sources/$software
   make -j $jobs
 }
 
 
 function configureSoftware() {
-  cd ~/$software
+  cd ~/sources/$software
 
   local options="enable-fuzz-afl no-shared no-module
     -DPEDANTIC enable-tls1_3 enable-weak-ssl-ciphers enable-rc5
@@ -23,12 +23,12 @@ function configureSoftware() {
 
 
 function getFuzzers() {
-  cd ~
+  cd ~/sources
   ls openssl/fuzz/corpora/ |\
   while read -r fuzzer
   do
-    exe=~/openssl/fuzz/$fuzzer
-    idir=~/openssl/fuzz/corpora/$fuzzer
+    exe=~/sources/openssl/fuzz/$fuzzer
+    idir=~/sources/openssl/fuzz/corpora/$fuzzer
 
     if [[ -x $exe && -d $idir ]]; then
       echo $fuzzer $exe $idir
@@ -38,14 +38,15 @@ function getFuzzers() {
 
 
 function softwareWasCloned()  {
-  if [[ -d ~/$software ]]; then
+  cd ~/sources/
+  if [[ -d ./$software ]]; then
     return 1
   fi
-  cd ~
+
   git clone https://github.com/openssl/$software.git
 }
 
 
 function softareWasUpdated()  {
-  repoWasUpdated ~/$software
+  repoWasUpdated ~/sources/$software
 }

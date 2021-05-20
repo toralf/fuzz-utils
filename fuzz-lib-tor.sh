@@ -3,14 +3,14 @@
 
 
 function buildSoftware() {
-  cd ~/$software
+  cd ~/sources/$software
   make micro-revision.i   # https://trac.torproject.org/projects/tor/ticket/29520
   make -j $jobs fuzzers
 }
 
 
 function configureSoftware() {
-  cd ~/$software
+  cd ~/sources/$software
 
   if [[ ! -x ./configure ]]; then
     rm -f Makefile
@@ -34,15 +34,15 @@ function configureSoftware() {
 
 
 function getFuzzers() {
-  cd ~
+  cd ~/sources/
   ls fuzzing-corpora |\
   while read -r fuzzer
   do
-    exe=~/$software/src/test/fuzz/fuzz-$fuzzer
-    idir=~/fuzzing-corpora/$fuzzer
+    exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer
+    idir=~/sources/fuzzing-corpora/$fuzzer
 
     # optional: dictionary for the fuzzer
-    dict=~/$software/src/test/fuzz/dict/$fuzzer
+    dict=~/sources/$software/src/test/fuzz/dict/$fuzzer
     [[ -s $dict ]] && add="-x $dict" || add=""
 
     if [[ -x $exe && -d $idir ]]; then
@@ -53,14 +53,16 @@ function getFuzzers() {
 
 
 function softwareWasCloned()  {
-  if [[ -d ~/fuzzing-corpora && -d ~/$software ]]; then
+  cd ~/sources/
+
+  if [[ -d ./fuzzing-corpora && -d ./$software ]]; then
     return 1
   fi
-  cd ~
-  if [[ ! -d ~/fuzzing-corpora ]]; then
+
+  if [[ ! -d ./fuzzing-corpora ]]; then
     git clone https://git.torproject.org/fuzzing-corpora.git
   fi
-  if [[ ! -d ~/$software ]]; then
+  if [[ ! -d ./$software ]]; then
     git clone https://git.torproject.org/$software.git
   fi
 }
@@ -68,8 +70,8 @@ function softwareWasCloned()  {
 
 # bash optimizes B away if A is false: "if [[ A || B ]]
 function softareWasUpdated()  {
-  if repoWasUpdated ~/$software; then
-    repoWasUpdated ~/fuzzing-corpora || true
+  if repoWasUpdated ~/sources/$software; then
+    repoWasUpdated ~/sources/fuzzing-corpora || true
     return 0
   fi
   return 1

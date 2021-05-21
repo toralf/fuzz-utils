@@ -1,7 +1,6 @@
 # specific routines to fuzz Tor
 
 
-
 function buildSoftware() {
   cd ~/sources/$software
   make micro-revision.i   # https://trac.torproject.org/projects/tor/ticket/29520
@@ -28,14 +27,11 @@ function configureSoftware() {
     "
     ./configure $gentoo $override
   fi
-
-  make clean
 }
 
 
 function getFuzzers() {
-  cd ~/sources/
-  ls fuzzing-corpora |\
+  ls ~/sources/fuzzing-corpora |\
   while read -r fuzzer
   do
     exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer

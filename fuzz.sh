@@ -30,15 +30,16 @@ function keepFindings() {
     fi
 
     find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options |\
-    while read -r dummy
+    head -n 1 |\
+    while read -r something_new
     do
-      echo "found sth in $d"
-      rsync -a $d ~/findings/
+      echo -e "\nfound sth : $something_new"
+
+      rsync -a /tmp/fuzzing/$d ~/findings/
       cd ~/findings/
       chmod -R g+r ./$d
-      chmod g+x ./$d/default{,/queue,/hangs,/crashes}
+      find ./$d -type d | xargs chmod g+x
       tar -cJpf $txz ./$d
-      break
     done
   done
 }
@@ -86,6 +87,7 @@ function runFuzzers() {
   elif [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softareWasUpdated; then
       configureSoftware
+      make clean
     fi
 
     echo " building $software ..."
@@ -99,8 +101,8 @@ function runFuzzers() {
     done
 
   else
-    echo -n "stopping $diff $software: "
     ((diff=-diff))
+    echo -n "stopping $diff $software: "
     ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |\
     shuf -n $diff |\
     while read d

@@ -18,13 +18,11 @@ function configureSoftware() {
     enable-ubsan"
 
   ./config $options
-  make clean
 }
 
 
 function getFuzzers() {
-  cd ~/sources
-  ls openssl/fuzz/corpora/ |\
+  ls ~/sources/openssl/fuzz/corpora/ |\
   while read -r fuzzer
   do
     exe=~/sources/openssl/fuzz/$fuzzer

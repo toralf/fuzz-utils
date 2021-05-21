@@ -26,20 +26,22 @@ function keepFindings() {
     local txz=~/findings/$d.tar.xz
     local options=""
     if [[ -f $txz ]]; then
-      options="--newer $txz"
+      options="-newer $txz"
     fi
 
     find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options |\
     head -n 1 |\
-    while read -r something_new
+    while read -r dummy
     do
-      echo -e "\nfound sth : $something_new"
+      echo -e "\n new findings"
 
-      rsync -a /tmp/fuzzing/$d ~/findings/
+      rsync -av /tmp/fuzzing/$d ~/findings/
       cd ~/findings/
       chmod -R g+r ./$d
       find ./$d -type d | xargs chmod g+x
       tar -cJpf $txz ./$d
+      echo
+      ls -lh $txz
     done
   done
 }

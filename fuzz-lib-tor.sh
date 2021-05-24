@@ -3,8 +3,7 @@
 
 function buildSoftware() {
   cd ~/sources/$software
-  make micro-revision.i   # https://trac.torproject.org/projects/tor/ticket/29520
-  make -j $jobs fuzzers
+  nice make -j $jobs fuzzers
 }
 
 
@@ -26,6 +25,7 @@ function configureSoftware() {
         --enable-module-dirauth --enable-zstd-advanced-apis --enable-unittests --disable-coverage
     "
     ./configure $gentoo $override
+    make micro-revision.i   # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
   fi
 }
 

@@ -5,6 +5,37 @@
 # start/stop fuzzers, check for findings and plot metrics
 
 
+function checkForFindings() {
+  ls /tmp/fuzzing/ |\
+  while read -r d
+  do
+    txz=~/findings/$d.tar.xz
+    options=""
+    if [[ -f $txz ]]; then
+      options="-newer $txz"
+    fi
+
+    find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options |\
+    head -n 1 |\
+    while read -r dummy
+    do
+      echo -e "\n new findings in $d"
+
+      rsync -av /tmp/fuzzing/$d ~/findings/
+      cd ~/findings/
+      chmod -R g+r ./$d
+      find ./$d -type d | xargs chmod g+x
+      tar -cJpf $txz ./$d
+      echo
+      ls -lh $txz
+    done
+  done
+
+  # check for aborts here too
+  grep -H -B 5 -A 10 'PROGRAM ABORT' /tmp/fuzzing/*/fuzz.log
+}
+
+
 function cleanUp()  {
   local rc=${1:-$?}
   trap - QUIT TERM EXIT
@@ -19,37 +50,9 @@ function getCommitId() {
 }
 
 
-function keepFindings() {
-  ls /tmp/fuzzing/ |\
-  while read -r d
-  do
-    local txz=~/findings/$d.tar.xz
-    local options=""
-    if [[ -f $txz ]]; then
-      options="-newer $txz"
-    fi
-
-    find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options |\
-    head -n 1 |\
-    while read -r dummy
-    do
-      echo -e "\n new findings"
-
-      rsync -av /tmp/fuzzing/$d ~/findings/
-      cd ~/findings/
-      chmod -R g+r ./$d
-      find ./$d -type d | xargs chmod g+x
-      tar -cJpf $txz ./$d
-      echo
-      ls -lh $txz
-    done
-  done
-}
-
-
 function lock()  {
   if [[ -s $lck ]]; then
-    echo -n " found $lck: "
+    echo -n " found lock file $lck: "
     cat $lck
     if kill -0 $(cat $lck) 2>/dev/null; then
       echo " valid, exiting ..."
@@ -89,12 +92,10 @@ function runFuzzers() {
   elif [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softareWasUpdated; then
       configureSoftware
-      make clean
+      # make clean  # needed after an update of AFL++
     fi
-
     echo " building $software ..."
     buildSoftware
-
     echo -n "starting $diff $software: "
     throwFuzzers $diff |\
     while read -r line
@@ -146,7 +147,7 @@ function startAFuzzer()  {
   fi
 
   cd $odir
-  nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -- ./$(basename $exe) &> ./fuzz.log &
+  nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &> ./fuzz.log &
   sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
   echo -n "    $fuzzer"
 }
@@ -159,13 +160,13 @@ function throwFuzzers()  {
     getFuzzers |\
     while read f
     do
-      if ! ls -d /sys/fs/cgroup/cpu/local/${software}_* &>/dev/null; then
+      if ! ls -d /sys/fs/cgroup/cpu/local/${f}_* &>/dev/null; then
         echo $f
       fi
     done |\
-    shuf -n $n
+    shuf
 
-    getFuzzers | shuf -n $n
+    getFuzzers | shuf
   ) |\
   head -n $n
 }
@@ -179,34 +180,40 @@ export LANG=C.utf8
 export GIT_PAGER="cat"
 export PAGER="cat"
 
-# any change here usually needs a rebuild of $software to take an effect -> run "make clean" in ~/$softwarea manually
+# any change here usually needs a rebuild of $software to take effect -> run "make clean" before !
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
 export CXXFLAGS="$CFLAGS"
+
+# these affect only the start of a fuzzer
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
 export AFL_SHUFFLE_QUEUE=1
 
-jobs=8  # parallel make jobs in buildSoftware()
+jobs=4  # parallel make jobs in buildSoftware()
 
 lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp QUIT TERM EXIT
 
-while getopts fpr:s: opt
-do
-  case $opt in
-    f)  keepFindings
-        ;;
-    p)  plotData
-        ;;
-    r)  runFuzzers "$OPTARG"
-        ;;
-    s)  software="$OPTARG"
-        source $(dirname $0)/fuzz-lib-${software}.sh
-        ;;
-  esac
-done
-
+if [[ $# -eq 0 ]]; then
+  # this matches "afl-fuzz -I $0"
+  checkForFindings
+else
+  while getopts fpr:s: opt
+  do
+    case $opt in
+      f)  checkForFindings
+          ;;
+      p)  plotData
+          ;;
+      r)  runFuzzers "$OPTARG"
+          ;;
+      s)  software="$OPTARG"
+          source $(dirname $0)/fuzz-lib-${software}.sh
+          ;;
+    esac
+  done
+fi

@@ -28,11 +28,11 @@ function checkForFindings() {
       tar -cJpf $txz ./$d
       echo
       ls -lh $txz
+      echo
     done
   done
 
-  # check for aborts here too
-  grep -H -B 5 -A 10 'PROGRAM ABORT' /tmp/fuzzing/*/fuzz.log
+  tail -n 20 /tmp/fuzzing/*/fuzz.log | grep -B 21 -A 10 'PROGRAM ABORT' || true
 }
 
 

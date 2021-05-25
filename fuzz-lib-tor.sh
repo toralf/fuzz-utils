@@ -65,7 +65,7 @@ function softwareWasCloned()  {
 
 
 # bash optimizes B away if A is false: "if [[ A || B ]]
-function softareWasUpdated()  {
+function softwareWasUpdated()  {
   if repoWasUpdated ~/sources/$software; then
     repoWasUpdated ~/sources/fuzzing-corpora || true
     return 0

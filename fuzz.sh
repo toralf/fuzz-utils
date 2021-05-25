@@ -106,10 +106,11 @@ function runFuzzers() {
     return 0
 
   elif [[ $diff -gt 0 ]]; then
-    if softwareWasCloned || softareWasUpdated; then
+    if softwareWasCloned || softwareWasUpdated; then
       configureSoftware
       # make clean  # needed after an update of AFL++
     fi
+    echo
     echo " building $software ..."
     buildSoftware
     echo -n "starting $diff $software: "

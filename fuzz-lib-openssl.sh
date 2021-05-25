@@ -51,6 +51,6 @@ function softwareWasCloned()  {
 }
 
 
-function softareWasUpdated()  {
+function softwareWasUpdated()  {
   repoWasUpdated ~/sources/$software
 }

@@ -32,7 +32,14 @@ function checkForFindings() {
     done
   done
 
-  tail -n 20 /tmp/fuzzing/*/fuzz.log | grep -B 21 -A 10 'PROGRAM ABORT' || true
+  for i in $(ls /tmp/fuzzing/*/fuzz.log 2>/dev/null)
+  do
+    tail -n 15 $i |\
+    colourStrip |\
+    grep -B 15 -A 15 -e 'PROGRAM ABORT' -e 'Testing aborted' && echo || true
+  done
+
+  return 0
 }
 
 
@@ -42,6 +49,15 @@ function cleanUp()  {
 
   rm -f "$lck"
   exit $rc
+}
+
+
+function colourStrip()  {
+  if [[ -x /usr/bin/ansifilter ]]; then
+    ansifilter
+  else
+    cat
+  fi
 }
 
 

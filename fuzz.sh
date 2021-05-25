@@ -202,17 +202,20 @@ if [[ $# -eq 0 ]]; then
   # this matches "afl-fuzz -I $0"
   checkForFindings
 else
-  while getopts fpr:s: opt
+  while getopts fo:pt: opt
   do
     case $opt in
       f)  checkForFindings
           ;;
+      o)  software="openssl"
+          source $(dirname $0)/fuzz-lib-${software}.sh
+          runFuzzers "$OPTARG"
+          ;;
       p)  plotData
           ;;
-      r)  runFuzzers "$OPTARG"
-          ;;
-      s)  software="$OPTARG"
+      t)  software="tor"
           source $(dirname $0)/fuzz-lib-${software}.sh
+          runFuzzers "$OPTARG"
           ;;
     esac
   done

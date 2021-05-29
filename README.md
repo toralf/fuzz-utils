@@ -7,18 +7,16 @@ fuzz Tor, OpenSSL and probably more using [AFL++](https://github.com/AFLplusplus
 crontab example:
 
 ```
-# provides http://x.y.z:12345 for AFL metrics data.
+# provides http://x.y.z:12345 for AFL plots of metrics
 @reboot mkdir /tmp/fuzzing; cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --port 12345 --address x.y.z &>/tmp/simple-http-server-fuzzing.log
 
-@reboot /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2
-@hourly /opt/fuzz-utils/fuzz.sh -s openssl -r 2 -s tor -r 2 -f -p
-```
-Crashes are rsynced to the crontab users `$HOME/findings` directory.
-UNIX processes can be watched via:
+# start 4 OpenSSL and 4 Tor fuzzers
+@reboot /opt/fuzz-utils/fuzz.sh -o 4 -t 4
 
-```bash
-watch -c "pgrep afl | xargs -n 1 -r pstree -UlnpuTa"
+# restart if needed to keep 4 OpenSSL and 4 Tor fuzzers running, look for findings and create plots
+@hourly /opt/fuzz-utils/fuzz.sh -o 4 -t 4 -f -p
 ```
+Live data are in `/tmp/fuzz`, findings are synced to `$HOME/findings`.
 
 Mount `/tmp` at a *tmpfs* to avoid heavy I/O stress to the disk.
 

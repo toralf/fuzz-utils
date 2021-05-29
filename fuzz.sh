@@ -34,9 +34,9 @@ function checkForFindings() {
 
   for i in $(ls /tmp/fuzzing/*/fuzz.log 2>/dev/null)
   do
-    tail -n 15 $i |\
+    tail -v -n 15 $i |\
     colourStrip |\
-    grep -B 15 -A 15 -e 'PROGRAM ABORT' -e 'Testing aborted' && echo || true
+    grep -B 20 -A 5 -e 'PROGRAM ABORT' -e 'Testing aborted' && echo || true
   done
 
   return 0

@@ -8,7 +8,7 @@ crontab example:
 
 ```
 # provides http://x.y.z:12345 for AFL plots of metrics
-@reboot mkdir /tmp/fuzzing; cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --port 12345 --address x.y.z &>/tmp/simple-http-server-fuzzing.log
+@reboot /opt/fuzz-utils/fuzz.sh -w <address>:<port> &>/tmp/fuzz-web.log
 
 # start 4 OpenSSL and 4 Tor fuzzers
 @reboot /opt/fuzz-utils/fuzz.sh -o 4 -t 4
@@ -16,7 +16,7 @@ crontab example:
 # restart if needed to keep 4 OpenSSL and 4 Tor fuzzers running, look for findings and create plots
 @hourly /opt/fuzz-utils/fuzz.sh -o 4 -t 4 -f -p
 ```
-Live data are in `/tmp/fuzz`, findings are synced to `$HOME/findings`.
+Live data are in `/tmp/fuzzing`, findings are synced to `$HOME/findings`.
 
 Mount `/tmp` at a *tmpfs* to avoid heavy I/O stress to the disk.
 

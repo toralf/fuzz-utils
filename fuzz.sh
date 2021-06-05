@@ -199,6 +199,12 @@ function throwFuzzers()  {
 }
 
 
+function startWebserver()  {
+  read -r address port < <(tr ':' ' ' <<< $1)
+  cd $maindir && nice $(dirname $0)/simple-http-server.py --address $address --port $port &
+}
+
+
 #######################################################################
 #
 set -eu
@@ -227,6 +233,7 @@ export AFL_MAP_SIZE=70144
 
 jobs=4  # parallel make jobs in buildSoftware()
 maindir="/tmp/fuzzing"
+[[ -d $maindir ]] || mkdir $maindir
 
 lck=/tmp/$(basename $0).lock
 lock
@@ -236,7 +243,7 @@ if [[ $# -eq 0 ]]; then
   # this matches "afl-fuzz -I $0"
   checkForFindings
 else
-  while getopts fo:pt: opt
+  while getopts fo:pt:w: opt
   do
     case $opt in
       f)  checkForFindings
@@ -250,6 +257,8 @@ else
       t)  software="tor"
           source $(dirname $0)/fuzz-lib-${software}.sh
           runFuzzers "$OPTARG"
+          ;;
+      w)  startWebserver "$OPTARG"
           ;;
     esac
   done

@@ -15,13 +15,16 @@ function checkForFindings() {
       options="-newer $txz"
     fi
 
-    find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options |\
-    head -n 1 |\
-    while read -r dummy
-    do
-      echo -e "\n new findings in $d"
+    findings=/tmp/fuzzing/findings
+    find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options > $findings
+    if [[ -s $findings ]]; then
+      if grep -q "crashes" $findings; then
+        echo -e " new CRASHES in $d\n"
+      else
+        echo -e " new hangs in $d\n"
+      fi
 
-      rsync -av /tmp/fuzzing/$d ~/findings/
+      rsync -archive --verbose --delete /tmp/fuzzing/$d ~/findings/
       cd ~/findings/
       chmod -R g+r ./$d
       find ./$d -type d | xargs chmod g+x
@@ -29,7 +32,8 @@ function checkForFindings() {
       echo
       ls -lh $txz
       echo
-    done
+    fi
+    rm $findings
   done
 
   for i in $(ls /tmp/fuzzing/*/fuzz.log 2>/dev/null)
@@ -172,20 +176,26 @@ function startAFuzzer()  {
 
 function throwFuzzers()  {
   local n=$1
-  (
-    # prefer non-running, but at least return $n
-    getFuzzers |\
-    while read f
-    do
-      if ! ls -d /sys/fs/cgroup/cpu/local/${f}_* &>/dev/null; then
-        echo $f
-      fi
-    done |\
-    shuf
 
-    getFuzzers | shuf
-  ) |\
-  head -n $n
+  # prefer a non-running + non-finished
+  truncate -s0 /tmp/fuzzing/next.{best,good,ok}
+
+  while read f
+  do
+    read -r exe dummy <<< $f
+    if ! ls -d /sys/fs/cgroup/cpu/local/${exe}_* &>/dev/null; then
+      if ! ls -d  /tmp/fuzzing/${exe}_* &>/dev/null; then
+       echo "$f" >> /tmp/fuzzing/next.best
+      else
+        echo "$f" >> /tmp/fuzzing/next.good
+      fi
+    else
+      echo "$f" >> /tmp/fuzzing/next.ok
+    fi
+  done < <(getFuzzers | shuf)
+
+  cat /tmp/fuzzing/next.{best,good,ok} | head -n $n
+  rm /tmp/fuzzing/next.{best,good,ok}
 }
 
 
@@ -197,17 +207,23 @@ export LANG=C.utf8
 export GIT_PAGER="cat"
 export PAGER="cat"
 
-# any change here usually needs a rebuild of $software to take effect -> run "make clean" before !
+# any change here needs a rebuild of $software
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
 export CXXFLAGS="$CFLAGS"
 
-# these affect only the start of a fuzzer
+# effective at compile time
+export AFL_QUIET=1
+
+# affects the start of a fuzzer
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
 export AFL_SHUFFLE_QUEUE=1
+
+# affects the run of an instrumented fuzzer
+export AFL_MAP_SIZE=70144
 
 jobs=4  # parallel make jobs in buildSoftware()
 

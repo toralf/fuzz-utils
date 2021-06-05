@@ -6,7 +6,7 @@
 
 
 function checkForFindings() {
-  ls /tmp/fuzzing/ |\
+  ls $maindir/ |\
   while read -r d
   do
     txz=~/findings/$d.tar.xz
@@ -15,8 +15,8 @@ function checkForFindings() {
       options="-newer $txz"
     fi
 
-    findings=/tmp/fuzzing/findings
-    find /tmp/fuzzing/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options > $findings
+    findings=$maindir/findings
+    find $maindir/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options > $findings
     if [[ -s $findings ]]; then
       if grep -q "crashes" $findings; then
         echo -e " new CRASHES in $d\n"
@@ -24,7 +24,7 @@ function checkForFindings() {
         echo -e " new hangs in $d\n"
       fi
 
-      rsync -archive --verbose --delete /tmp/fuzzing/$d ~/findings/
+      rsync -archive --verbose --delete $maindir/$d ~/findings/
       cd ~/findings/
       chmod -R g+r ./$d
       find ./$d -type d | xargs chmod g+x
@@ -36,7 +36,7 @@ function checkForFindings() {
     rm $findings
   done
 
-  for i in $(ls /tmp/fuzzing/*/fuzz.log 2>/dev/null)
+  for i in $(ls $maindir/*/fuzz.log 2>/dev/null)
   do
     tail -v -n 15 $i |\
     colourStrip |\
@@ -86,7 +86,7 @@ function lock()  {
 
 
 function plotData() {
-  for d in $(ls -d /tmp/fuzzing/* 2>/dev/null)
+  for d in $(ls -d $maindir/* 2>/dev/null)
   do
     afl-plot $d/default $d &>/dev/null || continue
   done
@@ -132,7 +132,7 @@ function runFuzzers() {
     while read d
     do
       # stats file is just created after a short while
-      statfile=/tmp/fuzzing/$(basename $d)/default/fuzzer_stats
+      statfile=$maindir/$(basename $d)/default/fuzzer_stats
       if [[ -s $statfile ]]; then
         pid=$(awk ' /^fuzzer_pid / { print $3 } ' $statfile)
         echo -n "    stats: $pid"
@@ -158,7 +158,7 @@ function startAFuzzer()  {
   cd ~/sources/$software
 
   local fdir=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
-  local odir=/tmp/fuzzing/$fdir
+  local odir=$maindir/$fdir
   mkdir -p $odir
 
   cp $exe $odir
@@ -178,24 +178,24 @@ function throwFuzzers()  {
   local n=$1
 
   # prefer a non-running + non-finished
-  truncate -s0 /tmp/fuzzing/next.{best,good,ok}
+  truncate -s0 $maindir/next.{best,good,ok}
 
   while read f
   do
     read -r exe dummy <<< $f
     if ! ls -d /sys/fs/cgroup/cpu/local/${exe}_* &>/dev/null; then
-      if ! ls -d  /tmp/fuzzing/${exe}_* &>/dev/null; then
-       echo "$f" >> /tmp/fuzzing/next.best
+      if ! ls -d  $maindir/${exe}_* &>/dev/null; then
+       echo "$f" >> $maindir/next.best
       else
-        echo "$f" >> /tmp/fuzzing/next.good
+        echo "$f" >> $maindir/next.good
       fi
     else
-      echo "$f" >> /tmp/fuzzing/next.ok
+      echo "$f" >> $maindir/next.ok
     fi
   done < <(getFuzzers | shuf)
 
-  cat /tmp/fuzzing/next.{best,good,ok} | head -n $n
-  rm /tmp/fuzzing/next.{best,good,ok}
+  cat $maindir/next.{best,good,ok} | head -n $n
+  rm $maindir/next.{best,good,ok}
 }
 
 
@@ -226,6 +226,7 @@ export AFL_SHUFFLE_QUEUE=1
 export AFL_MAP_SIZE=70144
 
 jobs=4  # parallel make jobs in buildSoftware()
+maindir="/tmp/fuzzing"
 
 lck=/tmp/$(basename $0).lock
 lock

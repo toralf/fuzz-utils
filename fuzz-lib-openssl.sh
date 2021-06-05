@@ -15,9 +15,9 @@ function configureSoftware() {
     -DPEDANTIC enable-tls1_3 enable-weak-ssl-ciphers enable-rc5
     enable-md2 enable-ssl3 enable-ssl3-method enable-nextprotoneg
     enable-ec_nistp_64_gcc_128 -fno-sanitize=alignment
-    --debug
-    enable-asan enable-ubsan"
+    --debug"
 
+  make clean
   ./config $options
 }
 
@@ -29,10 +29,10 @@ function getFuzzers() {
     exe=~/sources/openssl/fuzz/$fuzzer
     idir=~/sources/openssl/fuzz/corpora/$fuzzer
 
-    case $fuzzer in
-      asn1) add="-t +10"  ;;
-      *)    add=""        ;;
-    esac
+    add=""
+    if [[ $fuzzer = "asn1" ]]; then
+      add="-t +10"
+    fi
 
     if [[ -x $exe && -d $idir ]]; then
       echo $fuzzer $exe $idir $add

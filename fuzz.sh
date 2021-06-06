@@ -19,17 +19,16 @@ function checkForFindings() {
     find $maindir/$d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options > $findings
     if [[ -s $findings ]]; then
       if grep -q "crashes" $findings; then
-        echo -e " new CRASHES in $d\n"
+        echo " new CRASHES in $d"
       else
-        echo -e " new hangs in $d\n"
+        echo " new hangs in $d"
       fi
 
-      rsync -archive --verbose --delete $maindir/$d ~/findings/
+      rsync -archive --delete --quiet $maindir/$d ~/findings/
       cd ~/findings/
       chmod -R g+r ./$d
       find ./$d -type d | xargs chmod g+x
       tar -cJpf $txz ./$d
-      echo
       ls -lh $txz
       echo
     fi

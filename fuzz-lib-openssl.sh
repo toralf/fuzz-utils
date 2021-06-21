@@ -17,7 +17,6 @@ function configureSoftware() {
     enable-ec_nistp_64_gcc_128 -fno-sanitize=alignment
     --debug"
 
-  make clean
   ./config $options
 }
 
@@ -30,9 +29,10 @@ function getFuzzers() {
     idir=~/sources/openssl/fuzz/corpora/$fuzzer
 
     add=""
-    if [[ $fuzzer = "asn1" ]]; then
-      add="-t +10"
-    fi
+    case $fuzzer in
+      asn1)   add="-t   +25"  ;;
+      bignum) continue        ;;
+    esac
 
     if [[ -x $exe && -d $idir ]]; then
       echo $fuzzer $exe $idir $add

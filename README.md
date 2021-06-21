@@ -14,7 +14,7 @@ crontab example:
 @reboot /opt/fuzz-utils/fuzz.sh -o 4 -t 4
 
 # restart if needed to keep 4 OpenSSL and 4 Tor fuzzers running, look for findings and create plots
-@hourly /opt/fuzz-utils/fuzz.sh -o 4 -t 4 -f -p
+@hourly /opt/fuzz-utils/fuzz.sh -f -o 4 -t 4 -p
 ```
 Live data are in `/tmp/fuzzing`, findings are synced to `$HOME/findings`.
 

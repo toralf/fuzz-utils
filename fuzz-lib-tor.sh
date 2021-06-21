@@ -26,7 +26,6 @@ function configureSoftware() {
         --enable-module-dirauth --enable-zstd-advanced-apis --enable-unittests --disable-coverage
     "
 
-    make clean
     ./configure $gentoo $override
   fi
 }

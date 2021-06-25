@@ -6,7 +6,7 @@
 
 
 function checkForFindings() {
-  ls -d $fuzzdir/*_*_*-*_* |\
+  ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |\
   while read -r d
   do
     b=$(basename $d)
@@ -167,7 +167,7 @@ function startAFuzzer()  {
   mkdir -p $odir
 
   cp $exe $odir
-  # TODO: move this quirk to fuzz-lib-openssl.sh
+  # TODO: move this quirk to fuzz-lib-openssl.sh ?
   if [[ $software = "openssl" ]]; then
     cp ${exe}-test $odir
   fi
@@ -182,31 +182,30 @@ function startAFuzzer()  {
 function throwFuzzers()  {
   local n=$1
 
-  # prefer a non-running + non-aborted
+  # prefer a non-running + non-aborted (best) over a non-running aborted (good), or choose at least one (ok)
   truncate -s 0 $fuzzdir/next.{best,good,ok}
 
   while read -r f
   do
-    read -r exe dummy <<< $f
+    read -r exe idir add <<< $f
     if ! ls -d /sys/fs/cgroup/cpu/local/${exe}_* &>/dev/null; then
       if ! ls -d  $fuzzdir/aborted/${exe}_* &>/dev/null; then
-        echo "$f" >> $fuzzdir/next.best
+        echo "$exe $idir $add" >> $fuzzdir/next.best
       else
-        echo "$f" >> $fuzzdir/next.good
+        echo "$exe $idir $add" >> $fuzzdir/next.good
       fi
     else
-      echo "$f" >> $fuzzdir/next.ok
+      echo "$exe $idir $add" >> $fuzzdir/next.ok
     fi
   done < <(getFuzzers | shuf)
 
-  cat $fuzzdir/next.best $fuzzdir/next.good $fuzzdir/next.ok | head -n $n
+  (
+    cat $fuzzdir/next.best
+    cat $fuzzdir/next.good
+    cat $fuzzdir/next.ok
+  ) |\
+  head -n $n
   rm $fuzzdir/next.{best,good,ok}
-}
-
-
-function startWebserver()  {
-  read -r address port < <(tr ':' ' ' <<< $1)
-  cd $fuzzdir && nice $(dirname $0)/simple-http-server.py --address $address --port $port &
 }
 
 
@@ -248,7 +247,7 @@ if [[ $# -eq 0 ]]; then
   # this matches "afl-fuzz -I $0"
   checkForFindings
 else
-  while getopts fo:pt:w: opt
+  while getopts fo:pt: opt
   do
     case $opt in
       f)  checkForFindings
@@ -262,8 +261,6 @@ else
       t)  software="tor"
           source $(dirname $0)/fuzz-lib-${software}.sh
           runFuzzers "$OPTARG"
-          ;;
-      w)  startWebserver "$OPTARG"
           ;;
     esac
   done

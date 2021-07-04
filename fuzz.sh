@@ -28,7 +28,7 @@ function checkForFindings() {
       rsync -archive --delete --quiet $d ~/findings/
       cd ~/findings/
       chmod -R g+r ./$b
-      find ./$b -type d | xargs chmod g+x
+      find ./$b -type d -exec chmod g+x {} +
       tar -cJpf $txz ./$b
       ls -lh $txz
       echo
@@ -38,7 +38,7 @@ function checkForFindings() {
 
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null)
   do
-    if tail -v -n 15 $i | colourStrip | grep -B 20 -A 5 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
+    if tail -v -n 10 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
       [[ -d $fuzzdir/aborted/ ]] || mkdir -p $fuzzdir/aborted/
       d=$(dirname $i)
       mv $d $fuzzdir/aborted/
@@ -137,14 +137,15 @@ function runFuzzers() {
     while read -r d
     do
       # file is not immediately available
-      statfile=$fuzzdir/$(basename $d)/default/fuzzer_stats
+      fuzzer=$(basename $d)
+      statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
       if [[ -s $statfile ]]; then
         pid=$(awk ' /^fuzzer_pid / { print $3 } ' $statfile)
-        echo -n "    stats: $pid"
+        echo -n "    stats ($fuzzer): $pid"
         kill -15 $pid
       else
         tasks=$(cat $d/tasks)
-        echo -n "    cgroup: $tasks"
+        echo -n "    cgroup ($fuzzer): $tasks"
         kill -15 $tasks
       fi
     done

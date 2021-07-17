@@ -122,7 +122,7 @@ function runFuzzers() {
     echo " building $software ..."
     buildSoftware
 
-    echo -n "starting $diff $software: "
+    echo -en "\nstarting $diff $software: "
     throwFuzzers $diff |\
     while read -r line
     do
@@ -189,8 +189,8 @@ function throwFuzzers()  {
   while read -r f
   do
     read -r exe idir add <<< $f
-    if ! ls -d /sys/fs/cgroup/cpu/local/${exe}_* &>/dev/null; then
-      if ! ls -d  $fuzzdir/aborted/${exe}_* &>/dev/null; then
+    if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
+      if ! ls -d  $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
         echo "$exe $idir $add" >> $fuzzdir/next.best
       else
         echo "$exe $idir $add" >> $fuzzdir/next.good

@@ -238,7 +238,15 @@ export AFL_MAP_SIZE=70144
 
 jobs=8                      # parallel make jobs in buildSoftware()
 fuzzdir="/tmp/fuzzing"
-[[ -d $fuzzdir ]] || mkdir $fuzzdir
+if [[ ! -d $fuzzdir ]]; then
+  mkdir $fuzzdir
+
+  cat << EOF > $fuzzdir/robots.txt
+User-agent: *
+Disallow: /
+
+EOF
+fi
 
 lck=/tmp/$(basename $0).lock
 lock

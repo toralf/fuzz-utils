@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 import argparse
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import logging
 import re
 import socket
-
 
 class HTTPServerV6(HTTPServer):
     address_family = socket.AF_INET6
@@ -22,7 +20,6 @@ class MyHandler(SimpleHTTPRequestHandler):
 def main():
     logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s + %(message)s',
                         level=logging.INFO)
-
     logging.debug('Parsing args...')
     parser = argparse.ArgumentParser()
     parser.add_argument("--address", help="default: localhost", default='localhost')
@@ -41,7 +38,7 @@ def main():
     try:
         server.serve_forever()
     except KeyboardInterrupt as e:
-        print(e)
+        logging.error("ERROR:{}".format(e))
 
 
 if __name__ == '__main__':

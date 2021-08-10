@@ -151,6 +151,7 @@ function runFuzzers() {
     done
   fi
   echo
+  echo
 }
 
 

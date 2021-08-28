@@ -175,7 +175,9 @@ function startAFuzzer()  {
   fi
 
   cd $odir
-  nice -n 1 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &> ./fuzz.log &
+  # nice makes sysstat graphs better readable
+  # "setsid -w" causes the autogroup scheduler (if used) to create a new group
+  nice -n 3 setsid -w /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &> ./fuzz.log &
   sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
   echo -n "    $fuzzer"
 }

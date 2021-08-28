@@ -3,7 +3,7 @@
 
 function buildSoftware() {
   cd ~/sources/$software
-  nice make -j $jobs
+  nice -n 3 make -j $jobs
 }
 
 

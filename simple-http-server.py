@@ -24,7 +24,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--address", help="default: localhost", default='localhost')
     parser.add_argument("--port", type=int, help="default: 1234", default=1234)
-    parser.add_argument("--is_ipv6", type=bool, help="set it if ADDRESS is an IPv6, default: False",
+    parser.add_argument("--is_ipv6", type=bool, help="specify it if ADDRESS is an IPv6, default: False",
                         default=False)
     args = parser.parse_args()
 
@@ -38,7 +38,9 @@ def main():
     try:
         server.serve_forever()
     except KeyboardInterrupt as e:
-        logging.error("ERROR:{}".format(e))
+        logging.info("catched Ctrl-C")
+    except Exception as e:
+        logging.exception("Exception: {}".format(e), exc_info=False)
 
 
 if __name__ == '__main__':

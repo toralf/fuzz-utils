@@ -131,7 +131,7 @@ function runFuzzers() {
 
   else
     ((diff=-diff))
-    echo -n "stopping $diff $software: "
+    echo "stopping $diff $software: "
     ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |\
     shuf -n $diff |\
     while read -r d
@@ -141,8 +141,9 @@ function runFuzzers() {
       statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
       if [[ -s $statfile ]]; then
         pid=$(awk ' /^fuzzer_pid / { print $3 } ' $statfile)
-        echo -n "    stats ($fuzzer): $pid"
+        echo -n "    pid from fuzzer_stats of $fuzzer: $pid "
         kill -15 $pid
+        echo
       else
         tasks=$(cat $d/tasks)
         echo -n "    cgroup ($fuzzer): $tasks"
@@ -150,7 +151,6 @@ function runFuzzers() {
       fi
     done
   fi
-  echo
   echo
 }
 
@@ -176,8 +176,7 @@ function startAFuzzer()  {
 
   cd $odir
   # nice makes sysstat graphs better readable
-  # "setsid -w" causes the autogroup scheduler (if used) to create a new group
-  nice -n 3 setsid -w /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &> ./fuzz.log &
+  nice -n 6 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &> ./fuzz.log &
   sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
   echo -n "    $fuzzer"
 }

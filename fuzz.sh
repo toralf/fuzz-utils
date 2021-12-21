@@ -113,16 +113,14 @@ function runFuzzers() {
 
   elif [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softwareWasUpdated; then
-      echo
-      echo " configuring $software ..."
+      echo -e "\n configuring $software ...\n"
       configureSoftware
       make clean
     fi
-    echo
-    echo " building $software ..."
+    echo -e "\n building $software ...\n"
     buildSoftware
 
-    echo -en "\nstarting $diff $software: "
+    echo -en "\n starting $diff $software: "
     throwFuzzers $diff |\
     while read -r line
     do
@@ -173,6 +171,9 @@ function startAFuzzer()  {
   if [[ $software = "openssl" ]]; then
     cp ${exe}-test $odir
   fi
+
+  # be nice to the disc
+  export AFL_TMPDIR=$odir
 
   cd $odir
   # nice makes sysstat graphs better readable

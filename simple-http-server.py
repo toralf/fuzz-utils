@@ -22,10 +22,9 @@ def main():
                         level=logging.INFO)
     logging.debug('Parsing args...')
     parser = argparse.ArgumentParser()
-    parser.add_argument("--address", help="default: localhost", default='localhost')
+    parser.add_argument("--address", type=str, help="default: localhost", default='localhost')
     parser.add_argument("--port", type=int, help="default: 1234", default=1234)
-    parser.add_argument("--is_ipv6", type=bool, help="specify it if ADDRESS is an IPv6, default: False",
-                        default=False)
+    parser.add_argument("--is_ipv6", type=bool, help="mark ADDRESS as IPv6", default=False)
     args = parser.parse_args()
 
     if args.is_ipv6 or re.match(":", args.address):

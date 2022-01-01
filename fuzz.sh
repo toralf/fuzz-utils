@@ -90,13 +90,13 @@ function lock()  {
 function plotData() {
   for d in $(ls -d $fuzzdir/* 2>/dev/null)
   do
-    afl-plot $d/default $d &>/dev/null || continue
+    afl-plot $d/default $d &>/dev/null
   done
 }
 
 
 function repoWasUpdated() {
-  cd $1
+  cd $1 || return 1
   local old=$(getCommitId)
   git pull 1>/dev/null
   local new=$(getCommitId)
@@ -149,7 +149,7 @@ function runFuzzers() {
       fi
     done
   fi
-  echo
+  echo -e "\n\n"
 }
 
 

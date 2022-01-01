@@ -7,14 +7,14 @@ fuzz Tor, OpenSSL and probably more using [AFL++](https://github.com/AFLplusplus
 crontab example:
 
 ```
-# provides http://x.y.z:12345 for AFL plots of metrics
+# provides AFL plots of metrics
 @reboot /opt/fuzz-utils/fuzz.sh -w <address>:<port> &>/tmp/fuzz-web.log
 
-# start 4 OpenSSL and 4 Tor fuzzers
-@reboot /opt/fuzz-utils/fuzz.sh -o 4 -t 4
+# start OpenSSL and Tor fuzzers
+@reboot /opt/fuzz-utils/fuzz.sh -o 2 -t 2
 
-# restart if needed to keep 4 OpenSSL and 4 Tor fuzzers running, look for findings and create plots
-@hourly /opt/fuzz-utils/fuzz.sh -f -o 4 -t 4 -p
+# # findings, scheduling, plots
+@hourly /opt/fuzz-utils/fuzz.sh -f -o 2 -t 2 -p -f
 ```
 Live data are in `/tmp/fuzzing`, findings are synced to `$HOME/findings`.
 

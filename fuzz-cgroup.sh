@@ -4,8 +4,9 @@
 # helper to put given fuzzer PID under CGroup control
 
 
+# needed for this to work: https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
 function PutIntoCgroup() {
-  local name=$1
+  local name=local/$1
   local pid=$2
 
   # use cgroup v1 if available
@@ -21,9 +22,18 @@ function PutIntoCgroup() {
 
   for i in cpu memory
   do
-    echo      1 > /sys/fs/cgroup/$i/$name/notify_on_release
-    echo "$pid" > /sys/fs/cgroup/$i/$name/tasks
+    echo 1 > /sys/fs/cgroup/$i/$name/notify_on_release
+    if ! echo "$pid" > /sys/fs/cgroup/$i/$name/tasks; then
+      return 1
+    fi
   done
+}
+
+
+function RemoveCgroup() {
+  local name=local/$1
+
+  cgdelete cpu,memory:$name
 }
 
 
@@ -43,8 +53,8 @@ if [[ $# -ne 2 ]]; then
   exit 1
 fi
 
-if ! PutIntoCgroup local/$1 $2; then
-  # needed: https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
+if ! PutIntoCgroup $1 $2; then
   echo " PutIntoCgroup failed: $@"
+  RemoveCgroup $1
   exit 1
 fi

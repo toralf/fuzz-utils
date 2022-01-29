@@ -39,9 +39,11 @@ function checkForFindings() {
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null)
   do
     if tail -v -n 7 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
-      [[ -d $fuzzdir/aborted/ ]] || mkdir -p $fuzzdir/aborted/
+      if [[ ! -d $fuzzdir/aborted ]]; then
+        mkdir -p $fuzzdir/aborted
+      fi
       d=$(dirname $i)
-      mv $d $fuzzdir/aborted/
+      mv $d $fuzzdir/aborted
     fi
   done
 

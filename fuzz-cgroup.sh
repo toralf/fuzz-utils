@@ -14,7 +14,9 @@ function PutIntoCgroup() {
     return 0
   fi
 
-  cgcreate -g cpu,memory:$name
+  if ! cgcreate -g cpu,memory:$name; then
+    return 1
+  fi
 
   cgset -r cpu.cfs_quota_us=105000          $name
   cgset -r memory.limit_in_bytes=20G        $name

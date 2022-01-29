@@ -11,7 +11,7 @@ function PutIntoCgroup() {
 
   # use cgroup v1 if available
   if ! hash -r cgcreate || ! hash -r cgset || ! test -d /sys/fs/cgroup; then
-    return 0
+    return 1
   fi
 
   if ! cgcreate -g cpu,memory:$name; then
@@ -52,6 +52,12 @@ fi
 
 if [[ $# -ne 2 ]]; then
   echo "wrong # of args"
+  exit 1
+fi
+
+owner=$(ps -o user= -p $2)
+if [[ $owner != "tinderbox" ]]; then
+  echo " wrong '$owner'"
   exit 1
 fi
 

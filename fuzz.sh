@@ -6,6 +6,8 @@
 
 
 function checkForFindings() {
+  local d
+
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |\
   while read -r d
   do
@@ -39,10 +41,18 @@ function checkForFindings() {
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null)
   do
     if tail -v -n 7 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
-      if [[ ! -d $fuzzdir/aborted ]]; then
-        mkdir -p $fuzzdir/aborted
-      fi
       d=$(dirname $i)
+      echo " $d is aborted"
+      mv $d $fuzzdir/aborted
+    fi
+  done
+
+  for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null)
+  do
+    local pid=$(grep "^fuzzer_pid" $i | awk ' { print $3 } ')
+    if ! kill -0 $pid 2>/dev/null; then
+      d=$(dirname $(dirname $i))
+      echo " OOPS: $d is not running"
       mv $d $fuzzdir/aborted
     fi
   done
@@ -53,7 +63,7 @@ function checkForFindings() {
 
 function cleanUp()  {
   local rc=${1:-$?}
-  trap - QUIT TERM EXIT
+  trap - INT QUIT TERM EXIT
 
   rm -f "$lck"
   exit $rc
@@ -178,10 +188,19 @@ function startAFuzzer()  {
   export AFL_TMPDIR=$odir
 
   cd $odir
-  # nice makes sysstat graphs better readable
+
+  # nice makes it easier to show us in sysstat data plots
   nice -n 6 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &> ./fuzz.log &
-  sudo $(dirname $0)/fuzz-cgroup.sh $fdir $!
+  local pid=$!
   echo -n "    $fuzzer"
+  if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $pid; then
+    echo " sth went wrong, killing $pid ..."
+    kill $pid
+    sleep 5
+    if kill -0 $pid; then
+      kill -9 $pid
+    fi
+  fi
 }
 
 
@@ -243,19 +262,21 @@ export AFL_MAP_SIZE=70144
 
 jobs=8                      # parallel make jobs in buildSoftware()
 fuzzdir="/tmp/fuzzing"
-if [[ ! -d $fuzzdir ]]; then
-  mkdir $fuzzdir
 
-  cat << EOF > $fuzzdir/robots.txt
+lck=/tmp/$(basename $0).lock
+lock
+trap cleanUp INT QUIT TERM EXIT
+
+if [[ ! -d $fuzzdir/aborted ]]; then
+  mkdir -p $fuzzdir/aborted
+fi
+
+cat << EOF > $fuzzdir/robots.txt
 User-agent: *
 Disallow: /
 
 EOF
-fi
 
-lck=/tmp/$(basename $0).lock
-lock
-trap cleanUp QUIT TERM EXIT
 
 if [[ $# -eq 0 ]]; then
   # this matches "afl-fuzz -I $0"

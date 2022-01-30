@@ -46,18 +46,18 @@ export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 export LANG=C.utf8
 
 if [[ "$(whoami)" != "root" ]]; then
-  echo "you must be root "
+  echo " you must be root "
   exit 1
 fi
 
 if [[ $# -ne 2 ]]; then
-  echo "wrong # of args"
+  echo " wrong # of args"
   exit 1
 fi
 
 owner=$(ps -o user= -p $2)
-if [[ $owner != "tinderbox" ]]; then
-  echo " wrong '$owner'"
+if [[ $owner != "torproject" ]]; then
+  echo " wrong owner '$owner' for pid $2"
   exit 1
 fi
 

@@ -195,7 +195,7 @@ function startAFuzzer()  {
   echo -n "    $fuzzer"
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $pid; then
     echo " sth went wrong, killing $pid ..."
-    kill $pid
+    kill -15 $pid
     sleep 5
     if kill -0 $pid; then
       kill -9 $pid

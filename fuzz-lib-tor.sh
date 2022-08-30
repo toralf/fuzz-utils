@@ -65,10 +65,11 @@ function softwareWasCloned()  {
 }
 
 
-# bash optimizes B away if A is false: "if [[ A || B ]]
 function softwareWasUpdated()  {
+  # bash optimizes in "if [[ A || B ]]" the right term B away if A is false
+  # - but we have to call repoWasUpdated() in both directories
   if repoWasUpdated ~/sources/$software; then
-    repoWasUpdated ~/sources/fuzzing-corpora || true
+    repoWasUpdated ~/sources/fuzzing-corpora || true  # neutralize "set -e"
     return 0
   fi
   return 1

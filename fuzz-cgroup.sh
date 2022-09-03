@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # set -x
 
 # helper to put given fuzzer PID under CGroup control

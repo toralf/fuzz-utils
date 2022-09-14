@@ -37,7 +37,7 @@ def main():
     logging.info('running at %s at %s', args.address, args.port)
     try:
         server.serve_forever()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         logging.info("catched Ctrl-C")
     except Exception as e:
         logging.exception("Exception: {}".format(e), exc_info=False)

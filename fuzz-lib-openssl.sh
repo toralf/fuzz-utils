@@ -23,7 +23,7 @@ function configureSoftware() {
 
 
 function getFuzzers() {
-  ls ~/sources/openssl/fuzz/corpora/ |\
+  ls ~/sources/openssl/fuzz/corpora/ |
   while read -r fuzzer
   do
     exe=~/sources/openssl/fuzz/$fuzzer

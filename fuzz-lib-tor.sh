@@ -33,7 +33,7 @@ function configureSoftware() {
 
 
 function getFuzzers() {
-  ls ~/sources/fuzzing-corpora |\
+  ls ~/sources/fuzzing-corpora |
   while read -r fuzzer
   do
     exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer

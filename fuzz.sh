@@ -9,7 +9,7 @@
 function checkForFindings() {
   local d
 
-  ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |\
+  ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
   while read -r d
   do
     b=$(basename $d)
@@ -134,7 +134,7 @@ function runFuzzers() {
     buildSoftware
 
     echo -en "\n starting $diff $software: "
-    throwFuzzers $diff |\
+    throwFuzzers $diff |
     while read -r line
     do
       startAFuzzer $line
@@ -143,8 +143,8 @@ function runFuzzers() {
   else
     ((diff=-diff))
     echo "stopping $diff $software: "
-    ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |\
-    shuf -n $diff |\
+    ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |
+    shuf -n $diff |
     while read -r d
     do
       # file is not immediately available
@@ -229,7 +229,7 @@ function throwFuzzers()  {
     cat $fuzzdir/next.best
     cat $fuzzdir/next.good
     cat $fuzzdir/next.ok
-  ) |\
+  ) |
   head -n $n
   rm $fuzzdir/next.{best,good,ok}
 }

@@ -10,15 +10,11 @@ function PutIntoCgroup() {
   local name=local/$1
   local pid=$2
 
-  # use cgroup v1 if available
-  if ! hash -r cgcreate || ! hash -r cgset || ! test -d /sys/fs/cgroup; then
-    return 1
-  fi
-
   if ! cgcreate -g cpu,memory:$name; then
     return 1
   fi
 
+  # slice is 10us
   cgset -r cpu.cfs_quota_us=105000          $name
   cgset -r memory.limit_in_bytes=20G        $name
   cgset -r memory.memsw.limit_in_bytes=30G  $name

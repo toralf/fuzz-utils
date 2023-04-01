@@ -121,10 +121,11 @@ function runFuzzers() {
   local wanted=$1
   local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
 
-  if ! ((diff = $wanted - $running)); then
+  if ! (( diff=wanted-running )); then
     return 0
+  fi
 
-  elif [[ $diff -gt 0 ]]; then
+  if [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softwareWasUpdated; then
       echo -e "\n configuring $software ...\n"
       configureSoftware
@@ -141,7 +142,7 @@ function runFuzzers() {
     done
 
   else
-    ((diff=-diff))
+    (( diff=-diff ))
     echo "stopping $diff $software: "
     ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |
     shuf -n $diff |

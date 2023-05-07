@@ -14,7 +14,7 @@ Findings will be synced to `$HOME/findings`.
 
 crontab example:
 
-```
+```crontab
 # start fuzzers + provides AFL plot metrics
 @reboot   /opt/fuzz-utils/fuzz.sh -o 2 -t 2; (cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --address x.y.z --port 12345 &>/tmp/web-fuzzing.log &)
 
@@ -24,6 +24,6 @@ crontab example:
 
 Grant the user (i.e.: _torproject_) these sudo rights:
 
-```
+```sudo
 torproject ALL=(ALL) NOPASSWD: /opt/fuzz-utils/fuzz-cgroup.sh
 ```

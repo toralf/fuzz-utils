@@ -101,7 +101,7 @@ function repoWasUpdated() {
   local old=$(getCommitId)
   git pull 1>/dev/null
   local new=$(getCommitId)
-  [[ $old != $new ]]
+  [[ $old != "$new" ]]
 }
 
 function runFuzzers() {
@@ -156,7 +156,7 @@ function startAFuzzer() {
   local exe=${2?:exe ?!}
   local idir=${3?:idir ?!}
   shift 3
-  local add=${@:-}
+  local add=${*:-}
 
   cd ~/sources/$software
 
@@ -281,6 +281,10 @@ else
       software="tor"
       source $(dirname $0)/fuzz-lib-${software}.sh
       runFuzzers "$OPTARG"
+      ;;
+    *)
+      echo "sth wrong"
+      exit 1
       ;;
     esac
   done

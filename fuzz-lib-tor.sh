@@ -1,14 +1,15 @@
+# shellcheck shell=bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 # specific routines to fuzz Tor
 
 function buildSoftware() {
-  cd ~/sources/$software
+  cd ~/sources/$software || return 1
   make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
   nice -n 3 make -j $jobs fuzzers
 }
 
 function configureSoftware() {
-  cd ~/sources/$software
+  cd ~/sources/$software || return 1
 
   if [[ ! -x ./configure ]]; then
     rm -f Makefile
@@ -46,7 +47,7 @@ function getFuzzers() {
 }
 
 function softwareWasCloned() {
-  cd ~/sources/
+  cd ~/sources/ || return 1
 
   if [[ -d ./fuzzing-corpora && -d ./$software ]]; then
     return 1

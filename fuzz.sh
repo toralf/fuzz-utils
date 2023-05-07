@@ -1,46 +1,42 @@
-#!/bin/sh
+#!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 # set -x
 
-
 # start/stop fuzzers, check for findings and plot metrics
-
 
 function checkForFindings() {
   local d
 
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
-  while read -r d
-  do
-    b=$(basename $d)
-    txz=~/findings/$b.tar.xz
-    options=""
-    if [[ -f $txz ]]; then
-      options="-newer $txz"
-    fi
-
-    result=$fuzzdir/result
-    find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options > $result
-    if [[ -s $result ]]; then
-      if grep -q "crashes" $result; then
-        echo " new CRASHES in $d"
-      else
-        echo " new hangs in $d"
+    while read -r d; do
+      b=$(basename $d)
+      txz=~/findings/$b.tar.xz
+      options=""
+      if [[ -f $txz ]]; then
+        options="-newer $txz"
       fi
 
-      rsync -archive --delete --quiet $d ~/findings/
-      cd ~/findings/
-      chmod -R g+r ./$b
-      find ./$b -type d -exec chmod g+x {} +
-      tar -cJpf $txz ./$b
-      ls -lh $txz
-      echo
-    fi
-    rm $result
-  done
+      result=$fuzzdir/result
+      find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$result
+      if [[ -s $result ]]; then
+        if grep -q "crashes" $result; then
+          echo " new CRASHES in $d"
+        else
+          echo " new hangs in $d"
+        fi
 
-  for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null)
-  do
+        rsync -archive --delete --quiet $d ~/findings/
+        cd ~/findings/
+        chmod -R g+r ./$b
+        find ./$b -type d -exec chmod g+x {} +
+        tar -cJpf $txz ./$b
+        ls -lh $txz
+        echo
+      fi
+      rm $result
+    done
+
+  for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
     if tail -v -n 7 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
       d=$(dirname $i)
       echo " $d is aborted"
@@ -48,8 +44,7 @@ function checkForFindings() {
     fi
   done
 
-  for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null)
-  do
+  for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null); do
     local pid=$(grep "^fuzzer_pid" $i | awk ' { print $3 } ')
     if ! kill -0 $pid 2>/dev/null; then
       d=$(dirname $(dirname $i))
@@ -61,8 +56,7 @@ function checkForFindings() {
   return 0
 }
 
-
-function cleanUp()  {
+function cleanUp() {
   local rc=${1:-$?}
   trap - INT QUIT TERM EXIT
 
@@ -70,8 +64,7 @@ function cleanUp()  {
   exit $rc
 }
 
-
-function colourStrip()  {
+function colourStrip() {
   if [[ -x /usr/bin/ansifilter ]]; then
     ansifilter
   else
@@ -79,13 +72,11 @@ function colourStrip()  {
   fi
 }
 
-
 function getCommitId() {
   git log --max-count=1 --pretty=format:%H | cut -c1-12
 }
 
-
-function lock()  {
+function lock() {
   if [[ -s $lck ]]; then
     echo -n " found lock file $lck: "
     cat $lck
@@ -96,17 +87,14 @@ function lock()  {
       echo " stalled, continuing ..."
     fi
   fi
-  echo "$(date) $$" > $lck || exit 1
+  echo "$(date) $$" >$lck || exit 1
 }
 
-
 function plotData() {
-  for d in $(ls -d $fuzzdir/{openssl,tor}_* 2>/dev/null)
-  do
+  for d in $(ls -d $fuzzdir/{openssl,tor}_* 2>/dev/null); do
     afl-plot $d/default $d &>/dev/null || continue
   done
 }
-
 
 function repoWasUpdated() {
   cd $1 || return 1
@@ -116,12 +104,11 @@ function repoWasUpdated() {
   [[ $old != $new ]]
 }
 
-
 function runFuzzers() {
   local wanted=$1
   local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
 
-  if ! (( diff=wanted-running )); then
+  if ! ((diff = wanted - running)); then
     return 0
   fi
 
@@ -136,38 +123,35 @@ function runFuzzers() {
 
     echo -en "\n starting $diff $software: "
     throwFuzzers $diff |
-    while read -r line
-    do
-      startAFuzzer $line
-    done
+      while read -r line; do
+        startAFuzzer $line
+      done
 
   else
-    (( diff=-diff ))
+    ((diff = -diff))
     echo "stopping $diff $software: "
     ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |
-    shuf -n $diff |
-    while read -r d
-    do
-      # file is not immediately available
-      fuzzer=$(basename $d)
-      statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
-      if [[ -s $statfile ]]; then
-        pid=$(awk ' /^fuzzer_pid / { print $3 } ' $statfile)
-        echo -n "    pid from fuzzer_stats of $fuzzer: $pid "
-        kill -15 $pid
-        echo
-      else
-        tasks=$(cat $d/tasks)
-        echo -n "    cgroup ($fuzzer): $tasks"
-        kill -15 $tasks
-      fi
-    done
+      shuf -n $diff |
+      while read -r d; do
+        # file is not immediately available
+        fuzzer=$(basename $d)
+        statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
+        if [[ -s $statfile ]]; then
+          pid=$(awk ' /^fuzzer_pid / { print $3 } ' $statfile)
+          echo -n "    pid from fuzzer_stats of $fuzzer: $pid "
+          kill -15 $pid
+          echo
+        else
+          tasks=$(cat $d/tasks)
+          echo -n "    cgroup ($fuzzer): $tasks"
+          kill -15 $tasks
+        fi
+      done
   fi
   echo -e "\n\n"
 }
 
-
-function startAFuzzer()  {
+function startAFuzzer() {
   local fuzzer=${1?:name ?!}
   local exe=${2?:exe ?!}
   local idir=${3?:idir ?!}
@@ -182,7 +166,7 @@ function startAFuzzer()  {
 
   cp $exe $odir
   # TODO: move this quirk to fuzz-lib-openssl.sh ?
-  if [[ $software = "openssl" ]]; then
+  if [[ $software == "openssl" ]]; then
     cp ${exe}-test $odir
   fi
 
@@ -192,7 +176,7 @@ function startAFuzzer()  {
   cd $odir
 
   # nice makes it easier to show us in sysstat data plots
-  nice -n 6 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &> ./fuzz.log &
+  nice -n 6 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
   echo -n "    $fuzzer"
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $pid; then
@@ -205,24 +189,22 @@ function startAFuzzer()  {
   fi
 }
 
-
-function throwFuzzers()  {
+function throwFuzzers() {
   local n=$1
 
   # prefer a non-running + non-aborted (best) over a non-running aborted (good), or choose at least one (ok)
   truncate -s 0 $fuzzdir/next.{best,good,ok}
 
-  while read -r f
-  do
-    read -r exe idir add <<< $f
+  while read -r f; do
+    read -r exe idir add <<<$f
     if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
-      if ! ls -d  $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
-        echo "$exe $idir $add" >> $fuzzdir/next.best
+      if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
+        echo "$exe $idir $add" >>$fuzzdir/next.best
       else
-        echo "$exe $idir $add" >> $fuzzdir/next.good
+        echo "$exe $idir $add" >>$fuzzdir/next.good
       fi
     else
-      echo "$exe $idir $add" >> $fuzzdir/next.ok
+      echo "$exe $idir $add" >>$fuzzdir/next.ok
     fi
   done < <(getFuzzers | shuf)
 
@@ -231,10 +213,9 @@ function throwFuzzers()  {
     cat $fuzzdir/next.good
     cat $fuzzdir/next.ok
   ) |
-  head -n $n
+    head -n $n
   rm $fuzzdir/next.{best,good,ok}
 }
-
 
 #######################################################################
 #
@@ -262,7 +243,7 @@ export AFL_SHUFFLE_QUEUE=1
 # affects the run of an instrumented fuzzer
 export AFL_MAP_SIZE=70144
 
-jobs=8                      # parallel make jobs in buildSoftware()
+jobs=8 # parallel make jobs in buildSoftware()
 fuzzdir="/tmp/fuzzing"
 
 lck=/tmp/$(basename $0).lock
@@ -273,32 +254,34 @@ if [[ ! -d $fuzzdir/aborted ]]; then
   mkdir -p $fuzzdir/aborted
 fi
 
-cat << EOF > $fuzzdir/robots.txt
+cat <<EOF >$fuzzdir/robots.txt
 User-agent: *
 Disallow: /
 
 EOF
 
-
 if [[ $# -eq 0 ]]; then
   # this matches "afl-fuzz -I $0"
   checkForFindings
 else
-  while getopts fo:pt: opt
-  do
+  while getopts fo:pt: opt; do
     case $opt in
-      f)  checkForFindings
-          ;;
-      o)  software="openssl"
-          source $(dirname $0)/fuzz-lib-${software}.sh
-          runFuzzers "$OPTARG"
-          ;;
-      p)  plotData
-          ;;
-      t)  software="tor"
-          source $(dirname $0)/fuzz-lib-${software}.sh
-          runFuzzers "$OPTARG"
-          ;;
+    f)
+      checkForFindings
+      ;;
+    o)
+      software="openssl"
+      source $(dirname $0)/fuzz-lib-${software}.sh
+      runFuzzers "$OPTARG"
+      ;;
+    p)
+      plotData
+      ;;
+    t)
+      software="tor"
+      source $(dirname $0)/fuzz-lib-${software}.sh
+      runFuzzers "$OPTARG"
+      ;;
     esac
   done
 fi

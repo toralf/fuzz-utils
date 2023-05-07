@@ -3,10 +3,11 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from http.server import HTTPServer, SimpleHTTPRequestHandler
 import logging
 import re
 import socket
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
 
 class HTTPServerV6(HTTPServer):
     address_family = socket.AF_INET6
@@ -19,22 +20,27 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s + %(message)s',
-                        level=logging.INFO)
-    logging.debug('Parsing args...')
+    logging.basicConfig(
+        format="%(asctime)s %(name)s %(levelname)s + %(message)s", level=logging.INFO
+    )
+    logging.debug("Parsing args...")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--address", type=str, help="default: localhost", default='localhost')
+    parser.add_argument(
+        "--address", type=str, help="default: localhost", default="localhost"
+    )
     parser.add_argument("--port", type=int, help="default: 1234", default=1234)
-    parser.add_argument("--is_ipv6", type=bool, help="mark ADDRESS as IPv6", default=False)
+    parser.add_argument(
+        "--is_ipv6", type=bool, help="mark ADDRESS as IPv6", default=False
+    )
     args = parser.parse_args()
 
     if args.is_ipv6 or re.match(":", args.address):
-        address = str(args.address).replace('[', '').replace(']', '')
+        address = str(args.address).replace("[", "").replace("]", "")
         server = HTTPServerV6((address, args.port), MyHandler)
     else:
         server = HTTPServer((args.address, args.port), MyHandler)
 
-    logging.info('running at %s at %s', args.address, args.port)
+    logging.info("running at %s at %s", args.address, args.port)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -43,5 +49,5 @@ def main():
         logging.exception("Exception: {}".format(e), exc_info=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # specific routines to fuzz Tor
 
-
 function buildSoftware() {
   cd ~/sources/$software
-  make micro-revision.i   # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
+  make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
   nice -n 3 make -j $jobs fuzzers
 }
-
 
 function configureSoftware() {
   cd ~/sources/$software
@@ -31,26 +29,23 @@ function configureSoftware() {
   fi
 }
 
-
 function getFuzzers() {
   ls ~/sources/fuzzing-corpora |
-  while read -r fuzzer
-  do
-    exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer
-    idir=~/sources/fuzzing-corpora/$fuzzer
+    while read -r fuzzer; do
+      exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer
+      idir=~/sources/fuzzing-corpora/$fuzzer
 
-    # optional: dictionary for the fuzzer
-    dict=~/sources/$software/src/test/fuzz/dict/$fuzzer
-    [[ -s $dict ]] && add="-x $dict" || add=""
+      # optional: dictionary for the fuzzer
+      dict=~/sources/$software/src/test/fuzz/dict/$fuzzer
+      [[ -s $dict ]] && add="-x $dict" || add=""
 
-    if [[ -x $exe && -d $idir ]]; then
-      echo $fuzzer $exe $idir $add
-    fi
-  done
+      if [[ -x $exe && -d $idir ]]; then
+        echo $fuzzer $exe $idir $add
+      fi
+    done
 }
 
-
-function softwareWasCloned()  {
+function softwareWasCloned() {
   cd ~/sources/
 
   if [[ -d ./fuzzing-corpora && -d ./$software ]]; then
@@ -65,12 +60,11 @@ function softwareWasCloned()  {
   fi
 }
 
-
-function softwareWasUpdated()  {
+function softwareWasUpdated() {
   # bash optimizes in "if [[ A || B ]]" the right term B away if A is false
   # - but we have to call repoWasUpdated() in both directories
   if repoWasUpdated ~/sources/$software; then
-    repoWasUpdated ~/sources/fuzzing-corpora || true  # neutralize "set -e"
+    repoWasUpdated ~/sources/fuzzing-corpora || true # neutralize "set -e"
     return 0
   fi
   return 1

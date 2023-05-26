@@ -244,7 +244,7 @@ export AFL_SHUFFLE_QUEUE=1
 export AFL_MAP_SIZE=70144
 
 jobs=8 # parallel make jobs in buildSoftware()
-fuzzdir="/tmp/fuzzing"
+fuzzdir="/tmp/torproject/fuzzing"
 
 lck=/tmp/$(basename $0).lock
 lock

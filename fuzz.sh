@@ -202,9 +202,7 @@ function getFuzzerCandidates() {
       echo "$exe $idir $add" >>$tmpdir/next.3rd
     fi
   done < <(getFuzzers | shuf)
-
-  cat $tmpdir/next.{1st,2nd,3rd}
-
+  cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
   rm -rf $tmpdir
 }
 

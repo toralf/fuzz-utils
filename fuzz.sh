@@ -5,7 +5,7 @@
 # start/stop fuzzers, check for findings and plot metrics
 
 function checkForFindings() {
-  local d
+  local result=$fuzzdir/result
 
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
@@ -16,7 +16,6 @@ function checkForFindings() {
         options="-newer $txz"
       fi
 
-      result=$fuzzdir/result
       find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$result
       if [[ -s $result ]]; then
         if grep -q "crashes" $result; then
@@ -26,10 +25,9 @@ function checkForFindings() {
         fi
 
         rsync -archive --delete --quiet $d ~/findings/
-        cd ~/findings/
-        chmod -R g+r ./$b
-        find ./$b -type d -exec chmod g+x {} +
-        tar -cJpf $txz ./$b
+        chmod -R g+r ~/findings/$b
+        find ~/findings/$b -type d -exec chmod g+x {} +
+        tar -C ~/findings/ -cJpf $txz ./$b
         ls -lh $txz
         echo
       fi
@@ -122,7 +120,8 @@ function runFuzzers() {
     buildSoftware
 
     echo -en "\n starting $diff $software: "
-    throwFuzzers $diff |
+    getFuzzerCandidates |
+      head -n $diff |
       while read -r line; do
         startAFuzzer $line
       done
@@ -175,12 +174,11 @@ function startAFuzzer() {
 
   cd $odir
 
-  # nice makes it easier to show us in sysstat data plots
-  nice -n 6 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
+  nice -n 3 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
   echo -n "    $fuzzer"
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $pid; then
-    echo " sth went wrong, killing $pid ..."
+    echo " sth went wrong, killing $pid ..." >&2
     kill -15 $pid
     sleep 5
     if kill -0 $pid; then
@@ -189,38 +187,32 @@ function startAFuzzer() {
   fi
 }
 
-function throwFuzzers() {
-  local n=$1
+function getFuzzerCandidates() {
+  local tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX.tmp.d)
 
-  # prefer a non-running + non-aborted (best) over a non-running aborted (good), or choose at least one (ok)
-  truncate -s 0 $fuzzdir/next.{best,good,ok}
-
-  while read -r f; do
-    read -r exe idir add <<<$f
+  # prefer a "non-running non-aborted" (1st) over a" non-running but aborted" (2nd), but choose at least one (3rd)
+  while read -r exe idir add; do
     if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
       if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
-        echo "$exe $idir $add" >>$fuzzdir/next.best
+        echo "$exe $idir $add" >>$tmpdir/next.1st
       else
-        echo "$exe $idir $add" >>$fuzzdir/next.good
+        echo "$exe $idir $add" >>$tmpdir/next.2nd
       fi
     else
-      echo "$exe $idir $add" >>$fuzzdir/next.ok
+      echo "$exe $idir $add" >>$tmpdir/next.3rd
     fi
   done < <(getFuzzers | shuf)
 
-  (
-    cat $fuzzdir/next.best
-    cat $fuzzdir/next.good
-    cat $fuzzdir/next.ok
-  ) |
-    head -n $n
-  rm $fuzzdir/next.{best,good,ok}
+  cat $tmpdir/next.{1st,2nd,3rd}
+
+  rm -rf $tmpdir
 }
 
 #######################################################################
 #
 set -eu
 export LANG=C.utf8
+export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 
 export GIT_PAGER="cat"
 export PAGER="cat"
@@ -243,25 +235,27 @@ export AFL_SHUFFLE_QUEUE=1
 # affects the run of an instrumented fuzzer
 export AFL_MAP_SIZE=70144
 
-jobs=8 # parallel make jobs in buildSoftware()
+jobs=1 # parallel make jobs in buildSoftware()
 fuzzdir="/tmp/torproject/fuzzing"
 
 lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp INT QUIT TERM EXIT
 
-if [[ ! -d $fuzzdir/aborted ]]; then
-  mkdir -p $fuzzdir/aborted
-fi
-
-cat <<EOF >$fuzzdir/robots.txt
+if [[ ! -d $fuzzdir ]]; then
+  mkdir -p $fuzzdir
+  cat <<EOF >$fuzzdir/robots.txt
 User-agent: *
 Disallow: /
 
 EOF
+fi
+
+if [[ ! -d $fuzzdir/aborted ]]; then
+  mkdir $fuzzdir/aborted
+fi
 
 if [[ $# -eq 0 ]]; then
-  # this matches "afl-fuzz -I $0"
   checkForFindings
 else
   while getopts fo:pt: opt; do

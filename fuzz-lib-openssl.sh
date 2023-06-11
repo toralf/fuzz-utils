@@ -3,6 +3,8 @@
 # specific routines to fuzz OpenSSL
 
 function buildSoftware() {
+  local jobs=${1:-1}
+
   cd ~/sources/$software || return 1
   nice -n 3 make -j $jobs
 }
@@ -21,10 +23,10 @@ function configureSoftware() {
 }
 
 function getFuzzers() {
-  ls ~/sources/openssl/fuzz/corpora/ |
+  ls ~/sources/$software/fuzz/corpora/ |
     while read -r fuzzer; do
-      exe=~/sources/openssl/fuzz/$fuzzer
-      idir=~/sources/openssl/fuzz/corpora/$fuzzer
+      exe=~/sources/$software/fuzz/$fuzzer
+      idir=~/sources/$software/fuzz/corpora/$fuzzer
 
       add=""
       case $fuzzer in

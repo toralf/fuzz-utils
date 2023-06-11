@@ -3,6 +3,8 @@
 # specific routines to fuzz Tor
 
 function buildSoftware() {
+  local jobs=${1:-1}
+
   cd ~/sources/$software || return 1
   make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
   nice -n 3 make -j $jobs fuzzers

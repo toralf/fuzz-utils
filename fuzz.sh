@@ -117,7 +117,7 @@ function runFuzzers() {
       make clean
     fi
     echo -e "\n building $software ...\n"
-    buildSoftware
+    buildSoftware 1
 
     echo -en "\n starting $diff $software: "
     getFuzzerCandidates |
@@ -169,7 +169,7 @@ function startAFuzzer() {
     cp ${exe}-test $odir
   fi
 
-  # be nice to the disc
+  # use a tmpfs instead of the device
   export AFL_TMPDIR=$odir
 
   cd $odir
@@ -235,8 +235,12 @@ export AFL_SHUFFLE_QUEUE=1
 # affects the run of an instrumented fuzzer
 export AFL_MAP_SIZE=70144
 
-jobs=1 # parallel make jobs in buildSoftware()
 fuzzdir="/tmp/torproject/fuzzing"
+
+if [[ $# -eq 0 ]]; then
+  echo ' a parameter is required' >&2
+  exit 1
+fi
 
 lck=/tmp/$(basename $0).lock
 lock
@@ -255,31 +259,29 @@ if [[ ! -d $fuzzdir/aborted ]]; then
   mkdir $fuzzdir/aborted
 fi
 
-if [[ $# -eq 0 ]]; then
-  checkForFindings
-else
-  while getopts fo:pt: opt; do
-    case $opt in
-    f)
-      checkForFindings
-      ;;
-    o)
-      software="openssl"
-      source $(dirname $0)/fuzz-lib-${software}.sh
-      runFuzzers "$OPTARG"
-      ;;
-    p)
-      plotData
-      ;;
-    t)
-      software="tor"
-      source $(dirname $0)/fuzz-lib-${software}.sh
-      runFuzzers "$OPTARG"
-      ;;
-    *)
-      echo "sth wrong"
-      exit 1
-      ;;
-    esac
-  done
-fi
+while getopts fo:pt: opt; do
+  case $opt in
+  f)
+    checkForFindings
+    ;;
+  o)
+    software="openssl"
+    # shellcheck source=/dev/null
+    source $(dirname $0)/fuzz-lib-${software}.sh
+    runFuzzers "$OPTARG"
+    ;;
+  p)
+    plotData
+    ;;
+  t)
+    software="tor"
+    # shellcheck source=/dev/null
+    source $(dirname $0)/fuzz-lib-${software}.sh
+    runFuzzers "$OPTARG"
+    ;;
+  *)
+    echo " sth wrong" >&2
+    exit 1
+    ;;
+  esac
+done

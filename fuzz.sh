@@ -43,7 +43,7 @@ function checkForFindings() {
   done
 
   for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null); do
-    local pid=$(grep "^fuzzer_pid" $i | awk ' { print $3 } ')
+    local pid=$(grep "^fuzzer_pid" $i | awk '{ print $3 }')
     if ! kill -0 $pid 2>/dev/null; then
       d=$(dirname $(dirname $i))
       echo " OOPS: $d is not running"
@@ -71,7 +71,7 @@ function colourStrip() {
 }
 
 function getCommitId() {
-  git log --max-count=1 --pretty=format:%H | cut -c1-12
+  git log --max-count=1 --pretty=format:%H | cut -c 1-12
 }
 
 function lock() {
@@ -136,7 +136,7 @@ function runFuzzers() {
         fuzzer=$(basename $d)
         statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
         if [[ -s $statfile ]]; then
-          pid=$(awk ' /^fuzzer_pid / { print $3 } ' $statfile)
+          pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
           echo -n "    pid from fuzzer_stats of $fuzzer: $pid "
           kill -15 $pid
           echo
@@ -190,7 +190,7 @@ function startAFuzzer() {
 function getFuzzerCandidates() {
   local tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX.tmp.d)
 
-  # prefer a "non-running non-aborted" (1st) over a" non-running but aborted" (2nd), but choose at least one (3rd)
+  # prefer a "non-running non-aborted" (1st) over a "non-running but aborted" (2nd), but choose at least one (3rd)
   while read -r exe idir add; do
     if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
       if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
@@ -215,7 +215,6 @@ export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 export GIT_PAGER="cat"
 export PAGER="cat"
 
-# any change here needs a rebuild of $software
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"

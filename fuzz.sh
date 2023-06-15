@@ -245,11 +245,7 @@ trap cleanUp INT QUIT TERM EXIT
 
 if [[ ! -d $fuzzdir ]]; then
   mkdir -p $fuzzdir
-  cat <<EOF >$fuzzdir/robots.txt
-User-agent: *
-Disallow: /
-
-EOF
+  echo -e "User-agent: *\nDisallow: /\n" >$fuzzdir/robots.txt
 fi
 
 if [[ ! -d $fuzzdir/aborted ]]; then

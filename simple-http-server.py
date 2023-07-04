@@ -15,8 +15,13 @@ class HTTPServerV6(HTTPServer):
 
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
-        logging.debug(self.requestline)
-        return SimpleHTTPRequestHandler.do_GET(self)
+        try:
+            logging.debug(self.requestline)
+            return SimpleHTTPRequestHandler.do_GET(self)
+        except BrokenPipeError:
+            logging.info("pipe broken")
+        except Exception as e:
+            logging.exception("MyHandler: {}".format(e), exc_info=False)
 
 
 def main():
@@ -46,7 +51,7 @@ def main():
     except KeyboardInterrupt:
         logging.info("catched Ctrl-C")
     except Exception as e:
-        logging.exception("Exception: {}".format(e), exc_info=False)
+        logging.exception("main: {}".format(e), exc_info=False)
 
 
 if __name__ == "__main__":

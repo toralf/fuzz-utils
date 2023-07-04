@@ -11,6 +11,7 @@ function buildSoftware() {
 
 function configureSoftware() {
   cd ~/sources/$software || return 1
+  make clean
 
   # https://github.com/openssl/openssl/tree/master/fuzz
   local options="enable-fuzz-afl no-shared no-module

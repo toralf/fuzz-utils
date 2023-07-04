@@ -12,6 +12,7 @@ function buildSoftware() {
 
 function configureSoftware() {
   cd ~/sources/$software || return 1
+  make clean
 
   if [[ ! -x ./configure ]]; then
     rm -f Makefile
@@ -51,10 +52,10 @@ function softwareWasCloned() {
   fi
 
   if [[ ! -d ./fuzzing-corpora ]]; then
-    git clone https://git.torproject.org/fuzzing-corpora.git
+    git clone https://gitlab.torproject.org/tpo/core/fuzzing-corpora.git/
   fi
   if [[ ! -d ./$software ]]; then
-    git clone https://git.torproject.org/$software.git
+    git clone https://gitlab.torproject.org/tpo/core/$software.git/
   fi
 }
 

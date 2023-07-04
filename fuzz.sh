@@ -102,6 +102,22 @@ function repoWasUpdated() {
   [[ $old != "$new" ]]
 }
 
+function getFuzzerCandidates() {
+  # prefer a "non-running non-aborted" (1st) over a "non-running but aborted" (2nd), but choose at least one (3rd)
+  while read -r exe idir add; do
+    if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
+      if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
+        echo "$exe $idir $add" >>$tmpdir/next.1st
+      else
+        echo "$exe $idir $add" >>$tmpdir/next.2nd
+      fi
+    else
+      echo "$exe $idir $add" >>$tmpdir/next.3rd
+    fi
+  done < <(getFuzzers | shuf)
+  cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
+}
+
 function runFuzzers() {
   local wanted=$1
   local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
@@ -114,17 +130,18 @@ function runFuzzers() {
     if softwareWasCloned || softwareWasUpdated; then
       echo -e "\n configuring $software ...\n"
       configureSoftware
-      make clean
+      echo -e "\n building $software ...\n"
+      buildSoftware 1
     fi
-    echo -e "\n building $software ...\n"
-    buildSoftware 1
 
     echo -en "\n starting $diff $software: "
+    local tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
     getFuzzerCandidates |
       head -n $diff |
       while read -r line; do
         startAFuzzer $line
       done
+    rm -rf $tmpdir
 
   else
     ((diff = -diff))
@@ -185,25 +202,6 @@ function startAFuzzer() {
       kill -9 $pid
     fi
   fi
-}
-
-function getFuzzerCandidates() {
-  local tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX.tmp.d)
-
-  # prefer a "non-running non-aborted" (1st) over a "non-running but aborted" (2nd), but choose at least one (3rd)
-  while read -r exe idir add; do
-    if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
-      if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
-        echo "$exe $idir $add" >>$tmpdir/next.1st
-      else
-        echo "$exe $idir $add" >>$tmpdir/next.2nd
-      fi
-    else
-      echo "$exe $idir $add" >>$tmpdir/next.3rd
-    fi
-  done < <(getFuzzers | shuf)
-  cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
-  rm -rf $tmpdir
 }
 
 #######################################################################

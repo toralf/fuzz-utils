@@ -104,17 +104,20 @@ function repoWasUpdated() {
 
 function getFuzzerCandidates() {
   # prefer a "non-running non-aborted" (1st) over a "non-running but aborted" (2nd), but choose at least one (3rd)
-  while read -r exe idir add; do
-    if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
-      if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
-        echo "$exe $idir $add" >>$tmpdir/next.1st
+  getFuzzers $software |
+    shuf |
+    while read -r exe idir add; do
+      if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
+        if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
+          target=$tmpdir/next.1st
+        else
+          target=$tmpdir/next.2nd
+        fi
       else
-        echo "$exe $idir $add" >>$tmpdir/next.2nd
+        target=$tmpdir/next.3rd
       fi
-    else
-      echo "$exe $idir $add" >>$tmpdir/next.3rd
-    fi
-  done < <(getFuzzers | shuf)
+      echo "$exe $idir $add" >>$target
+    done
   cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
 }
 
@@ -128,6 +131,7 @@ function runFuzzers() {
 
   if [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softwareWasUpdated; then
+      cd ~/sources/$software || return 1
       echo -e "\n configuring $software ...\n"
       configureSoftware
       echo -e "\n building $software ...\n"
@@ -257,7 +261,7 @@ while getopts fo:pt: opt; do
     ;;
   o)
     software="openssl"
-    # shellcheck source=/dev/null
+    # shellcheck source=./fuzz-lib-openssl.sh
     source $(dirname $0)/fuzz-lib-${software}.sh
     runFuzzers "$OPTARG"
     ;;
@@ -266,7 +270,7 @@ while getopts fo:pt: opt; do
     ;;
   t)
     software="tor"
-    # shellcheck source=/dev/null
+    # shellcheck source=./fuzz-lib-tor.sh
     source $(dirname $0)/fuzz-lib-${software}.sh
     runFuzzers "$OPTARG"
     ;;

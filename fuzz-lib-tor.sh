@@ -5,13 +5,11 @@
 function buildSoftware() {
   local jobs=${1:-1}
 
-  cd ~/sources/$software || return 1
   make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
   nice -n 3 make -j $jobs fuzzers
 }
 
 function configureSoftware() {
-  cd ~/sources/$software || return 1
   make clean
 
   if [[ ! -x ./configure ]]; then
@@ -29,6 +27,8 @@ function configureSoftware() {
 }
 
 function getFuzzers() {
+  local software=${1?}
+
   ls ~/sources/fuzzing-corpora |
     while read -r fuzzer; do
       exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer
@@ -60,10 +60,10 @@ function softwareWasCloned() {
 }
 
 function softwareWasUpdated() {
-  # bash optimizes in "if [[ A || B ]]" the right term B away if A is false
+  # in "if [[ A || B ]]" bash optimizes B away if A is false
   # - but we have to call repoWasUpdated() in both directories
   if repoWasUpdated ~/sources/$software; then
-    repoWasUpdated ~/sources/fuzzing-corpora || true # neutralize "set -e"
+    repoWasUpdated ~/sources/fuzzing-corpora || true
     return 0
   fi
   return 1

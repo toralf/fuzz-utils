@@ -5,12 +5,10 @@
 function buildSoftware() {
   local jobs=${1:-1}
 
-  cd ~/sources/$software || return 1
   nice -n 3 make -j $jobs
 }
 
 function configureSoftware() {
-  cd ~/sources/$software || return 1
   make clean
 
   # https://github.com/openssl/openssl/tree/master/fuzz
@@ -24,6 +22,8 @@ function configureSoftware() {
 }
 
 function getFuzzers() {
+  local software=${1?}
+
   ls ~/sources/$software/fuzz/corpora/ |
     while read -r fuzzer; do
       exe=~/sources/$software/fuzz/$fuzzer

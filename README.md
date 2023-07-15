@@ -6,7 +6,7 @@ fuzz testing Tor, OpenSSL et. al using [AFL++](https://github.com/AFLplusplus/AF
 
 `fuzz.sh` is the entry point, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` provide target specific helper libs.
 
-`/tmp/fuzzing` should be a _tmpfs_ to avoid heavy I/O stress to the disk.
+`/tmp` should be a _tmpfs_ to avoid heavy I/O stress to the disk.
 Findings will be synced from there to `$HOME/findings`.
 The `fuzz-cgroup.sh` has to be run as root.
 

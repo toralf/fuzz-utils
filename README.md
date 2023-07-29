@@ -2,21 +2,20 @@
 
 # fuzz-utils
 
-fuzz testing Tor, OpenSSL et. al using [AFL++](https://github.com/AFLplusplus/AFLplusplus/)
+fuzz testing of Tor and OpenSSL using [AFL++](https://github.com/AFLplusplus/AFLplusplus/)
 
-`fuzz.sh` is the entry point, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` provide target specific helper libs.
+`fuzz.sh` is the entry point, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` do provide target specific helper libs.
 
-`/tmp` should be a _tmpfs_ to avoid heavy I/O stress to the disk.
+`/tmp/torproject/fuzzing` should be a _tmpfs_ to avoid heavy I/O stress to the disk.
 Findings will be synced from there to `$HOME/findings`.
 The `fuzz-cgroup.sh` has to be run as root.
 
 `simple-http-server.py` can be used to access metrics over HTTP.
 
-crontab example:
+Example:
 
-```crontab
-@reboot   /opt/fuzz-utils/fuzz.sh -o 2 -t 2; (cd /tmp/fuzzing && nice /opt/fuzz-utils/simple-http-server.py --address x.y.z --port 12345 &>/tmp/web-fuzzing.log &)
+```bash
 
-# findings, scheduling, plots
-@hourly   /opt/fuzz-utils/fuzz.sh -f -o 2 -t 2 -p -f
+# (f)indings, 1x (o)penssl, 1x (t)or, (p)lots, (f)indings
+*/5 * * * *   /opt/fuzz-utils/fuzz.sh -f -o 1 -t 1 -p -f
 ```

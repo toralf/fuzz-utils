@@ -132,13 +132,11 @@ function runFuzzers() {
   if [[ $diff -gt 0 ]]; then
     if softwareWasCloned || softwareWasUpdated; then
       cd ~/sources/$software || return 1
-      echo -e "\n configuring $software ...\n"
-      configureSoftware
       echo -e "\n building $software ...\n"
-      buildSoftware 1
+      buildSoftware
     fi
 
-    echo -en "\n starting $diff $software: "
+    echo -en "\n starting $diff fuzzer(s) for $software: "
     local tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
     getFuzzerCandidates |
       head -n $diff |
@@ -176,7 +174,7 @@ function startAFuzzer() {
   local exe=${2?:exe ?!}
   local idir=${3?:idir ?!}
   shift 3
-  local add=${*:-}
+  local add=${*-}
 
   cd ~/sources/$software
 

@@ -5,11 +5,6 @@
 function buildSoftware() {
   local jobs=${1:-1}
 
-  make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
-  nice -n 3 make -j $jobs fuzzers
-}
-
-function configureSoftware() {
   make clean
 
   if [[ ! -x ./configure ]]; then
@@ -24,6 +19,8 @@ function configureSoftware() {
     "
     ./configure $gentoo --enable-module-dirauth
   fi
+  make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
+  nice -n 3 make -j $jobs fuzzers
 }
 
 function getFuzzers() {
@@ -45,7 +42,9 @@ function getFuzzers() {
 }
 
 function softwareWasCloned() {
-  cd ~/sources/ || return 1
+  if ! cd ~/sources; then
+    return 1
+  fi
 
   if [[ -d ./fuzzing-corpora && -d ./$software ]]; then
     return 1
@@ -65,6 +64,7 @@ function softwareWasUpdated() {
   if repoWasUpdated ~/sources/$software; then
     repoWasUpdated ~/sources/fuzzing-corpora || true
     return 0
+  else
+    return 1
   fi
-  return 1
 }

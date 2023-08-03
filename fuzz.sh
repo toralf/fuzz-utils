@@ -5,33 +5,27 @@
 # start/stop fuzzers, check for findings and plot metrics
 
 function checkForFindings() {
-  local result=$fuzzdir/result
-
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
       b=$(basename $d)
-      txz=~/findings/$b.tar.xz
+      tar_archive=~/findings/$b.tar.gz
       options=""
-      if [[ -f $txz ]]; then
-        options="-newer $txz"
+      if [[ -f $tar_archive ]]; then
+        options="-newer $tar_archive"
       fi
 
-      find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$result
-      if [[ -s $result ]]; then
-        if grep -q "crashes" $result; then
-          echo " new CRASHES in $d"
-        else
-          echo " new hangs in $d"
-        fi
-
-        rsync -archive --delete --quiet $d ~/findings/
+      tmpfile=$(mktemp /tmp/$(basename $0)_XXXXXX)
+      find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$tmpfile
+      if [[ -s $tmpfile ]]; then
+        echo -e "\n new findings for $b\n"
+        rsync --archive --exclude '*/queue/*' --verbose $d ~/findings/
         chmod -R g+r ~/findings/$b
         find ~/findings/$b -type d -exec chmod g+x {} +
-        tar -C ~/findings/ -cJpf $txz ./$b
-        ls -lh $txz
+        tar -C ~/findings/ -czpf $tar_archive ./$b
+        ls -lh $tar_archive
         echo
       fi
-      rm $result
+      rm $tmpfile
     done
 
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do

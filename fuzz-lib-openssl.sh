@@ -28,6 +28,11 @@ function getFuzzers() {
       if [[ ! -x $exe ]]; then
         continue
       fi
+
+      case $fuzzer in
+      bignum) add="-t +1800" ;;
+      esac
+
       echo $fuzzer $exe $idir
     done
 }

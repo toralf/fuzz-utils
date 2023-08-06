@@ -18,7 +18,7 @@ function checkForFindings() {
       find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$tmpfile
       if [[ -s $tmpfile ]]; then
         echo -e "\n new findings for $b\n"
-        rsync --archive --exclude '*/queue/*' --verbose $d ~/findings/
+        rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/
         chmod -R g+r ~/findings/$b
         find ~/findings/$b -type d -exec chmod g+x {} +
         tar -C ~/findings/ -czpf $tar_archive ./$b

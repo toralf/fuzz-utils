@@ -31,9 +31,10 @@ function getFuzzers() {
 
       case $fuzzer in
       bignum) add="-t +1800" ;;
+      decoder) add="-t +120" ;;
       esac
 
-      echo $fuzzer $exe $idir
+      echo $fuzzer $exe $idir $add
     done
 }
 

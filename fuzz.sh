@@ -2,15 +2,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # set -x
 
-# start/stop fuzzers, check for findings and plot metrics
+# start/stop AFL fuzzers, check for findings, plot metrics and more
 
 function checkForFindings() {
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
       b=$(basename $d)
-      tar_archive=~/findings/$b.tar.gz
+      tar_archive=~/findings/$b.tar.gz # GH issue tracker does not allow *.xz attachments
       options=""
-      if [[ -f $tar_archive ]]; then
+      if [[ -s $tar_archive ]]; then
         options="-newer $tar_archive"
       fi
 
@@ -19,6 +19,7 @@ function checkForFindings() {
       if [[ -s $tmpfile ]]; then
         echo -e "\n new findings for $b\n"
         rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/
+        echo
         chmod -R g+r ~/findings/$b
         find ~/findings/$b -type d -exec chmod g+x {} +
         tar -C ~/findings/ -czpf $tar_archive ./$b

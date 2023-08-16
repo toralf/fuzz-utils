@@ -32,6 +32,7 @@ function getFuzzers() {
       case $fuzzer in
       bignum) add="-t +1800" ;;
       decoder) add="-t +120" ;;
+      *) add="" ;;
       esac
 
       echo $fuzzer $exe $idir $add
@@ -43,7 +44,7 @@ function softwareWasCloned() {
     return 1
   fi
 
-  if [[ -d ./$software ]]; then
+  if [[ -d ./$software && -s ./$software/fuzz/corpora/.git ]]; then
     return 1
   fi
 

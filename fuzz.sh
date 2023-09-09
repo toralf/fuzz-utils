@@ -227,6 +227,11 @@ export AFL_SHUFFLE_QUEUE=1
 # affects the run of an instrumented fuzzer
 export AFL_MAP_SIZE=70144
 
+# log file readability
+export AFL_NO_COLOUR=1
+
+export CGROUP_LOGLEVEL=ERROR
+
 fuzzdir="/tmp/torproject/fuzzing"
 
 if [[ $# -eq 0 ]]; then

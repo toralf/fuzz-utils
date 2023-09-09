@@ -26,13 +26,6 @@ function PutIntoCgroup() {
   done
 }
 
-function RemoveCgroup() {
-  local name=/local/fuzz/$1
-
-  cgdelete memory:$name
-  cgdelete cpu:$name
-}
-
 #######################################################################
 #
 set -euf
@@ -55,8 +48,4 @@ if [[ $owner != "torproject" ]]; then
   exit 1
 fi
 
-if ! PutIntoCgroup $1 $2; then
-  echo " PutIntoCgroup failed: $*"
-  RemoveCgroup $1
-  exit 1
-fi
+PutIntoCgroup $1 $2

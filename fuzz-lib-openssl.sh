@@ -30,8 +30,6 @@ function getFuzzers() {
       fi
 
       case $fuzzer in
-      bignum) add="-t +1800" ;;
-      decoder) add="-t +120" ;;
       *) add="" ;;
       esac
 

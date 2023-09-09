@@ -102,7 +102,7 @@ function getFuzzerCandidates() {
   getFuzzers $software |
     shuf |
     while read -r exe idir add; do
-      if ! ls -d /sys/fs/cgroup/cpu/local/${software}_${exe}_* &>/dev/null; then
+      if ! ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_${exe}_* &>/dev/null; then
         if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
           target=$tmpdir/next.1st
         else
@@ -117,8 +117,8 @@ function getFuzzerCandidates() {
 }
 
 function runFuzzers() {
-  local wanted=$1
-  local running=$(ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null | wc -w)
+  local wanted=${1?}
+  local running=$(ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null | wc -w)
 
   if ! ((diff = wanted - running)); then
     return 0
@@ -143,7 +143,7 @@ function runFuzzers() {
   else
     ((diff = -diff))
     echo "stopping $diff $software: "
-    ls -d /sys/fs/cgroup/cpu/local/${software}_* 2>/dev/null |
+    ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null |
       shuf -n $diff |
       while read -r d; do
         # file is not immediately available

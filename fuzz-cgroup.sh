@@ -6,8 +6,8 @@
 
 # needed for this to work: https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
 function PutIntoCgroup() {
-  local name=local/$1
-  local pid=$2
+  local name=/local/fuzz/${1?}
+  local pid=${2?}
 
   if ! cgcreate -g cpu,memory:$name; then
     return 1
@@ -27,9 +27,10 @@ function PutIntoCgroup() {
 }
 
 function RemoveCgroup() {
-  local name=local/$1
+  local name=/local/fuzz/$1
 
-  cgdelete cpu,memory:$name
+  cgdelete memory:$name
+  cgdelete cpu:$name
 }
 
 #######################################################################

@@ -4,7 +4,7 @@
 
 # helper to put given fuzzer PID under CGroup control
 
-# needed for this to work: https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
+# the "local" cgroup could be further limited, e.g. by https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
 function PutIntoCgroup() {
   local name=/local/fuzz/${1?}
   local pid=${2?}

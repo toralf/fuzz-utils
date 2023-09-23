@@ -30,6 +30,7 @@ function getFuzzers() {
       fi
 
       case $fuzzer in
+      bignum) continue ;; # https://github.com/openssl/openssl/issues/15356
       *) add="" ;;
       esac
 

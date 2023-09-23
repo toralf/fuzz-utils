@@ -71,13 +71,11 @@ function getCommitId() {
 
 function lock() {
   if [[ -s $lck ]]; then
-    echo -n " found lock file $lck: "
-    cat $lck
     if kill -0 $(cat $lck) 2>/dev/null; then
-      echo " valid, exiting ..."
-      return 1
+      return 1 # valid
     else
-      echo " stalled, continuing ..."
+      echo -n " ignored stalled lock file $lck: "
+      cat $lck
     fi
   fi
   echo "$(date) $$" >$lck || exit 1

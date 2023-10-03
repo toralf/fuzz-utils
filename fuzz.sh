@@ -31,6 +31,7 @@ function checkForFindings() {
 
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
     if tail -v -n 7 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
+      local d
       d=$(dirname $i)
       echo " $d is aborted"
       mv $d $fuzzdir/aborted
@@ -38,8 +39,10 @@ function checkForFindings() {
   done
 
   for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null); do
-    local pid=$(grep "^fuzzer_pid" $i | awk '{ print $3 }')
+    local pid
+    pid=$(grep "^fuzzer_pid" $i | awk '{ print $3 }')
     if ! kill -0 $pid 2>/dev/null; then
+      local d
       d=$(dirname $(dirname $i))
       echo " OOPS: $d is not running"
       mv $d $fuzzdir/aborted
@@ -89,9 +92,11 @@ function plotData() {
 
 function repoWasUpdated() {
   cd $1 || return 1
-  local old=$(getCommitId)
+  local old
+  old=$(getCommitId)
   git pull 1>/dev/null
-  local new=$(getCommitId)
+  local new
+  new=$(getCommitId)
   [[ $old != "$new" ]]
 }
 
@@ -116,33 +121,36 @@ function getFuzzerCandidates() {
 
 function runFuzzers() {
   local wanted=${1?}
-  local running=$(ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null | wc -w)
+  local running
+  running=$(ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null | wc -w)
 
-  if ! ((diff = wanted - running)); then
+  local delta
+  if ! ((delta = wanted - running)); then
     return 0
   fi
 
-  if [[ $diff -gt 0 ]]; then
+  if [[ $delta -gt 0 ]]; then
     if softwareWasCloned || softwareWasUpdated; then
       cd ~/sources/$software || return 1
       echo -e "\n building $software ...\n"
       buildSoftware
     fi
 
-    echo -en "\n starting $diff fuzzer(s) for $software: "
-    local tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
+    echo -en "\n starting $delta fuzzer(s) for $software: "
+    local tmpdir
+    tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
     getFuzzerCandidates |
-      head -n $diff |
+      head -n $delta |
       while read -r line; do
         startAFuzzer $line
       done
     rm -rf $tmpdir
 
   else
-    ((diff = -diff))
-    echo "stopping $diff $software: "
+    ((delta = delta))
+    echo "stopping $delta $software: "
     ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null |
-      shuf -n $diff |
+      shuf -n $delta |
       while read -r d; do
         # file is not immediately available
         fuzzer=$(basename $d)

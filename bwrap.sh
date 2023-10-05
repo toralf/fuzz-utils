@@ -29,4 +29,4 @@ sandbox=(env -i
   --ro-bind /sys /sys
 )
 
-exec "${sandbox[@]}" -- ${@}
+exec "${sandbox[@]}" -- "${@}"

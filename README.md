@@ -10,8 +10,6 @@ fuzz testing of Tor and OpenSSL using [AFL++](https://github.com/AFLplusplus/AFL
 Findings will be synced from there to `$HOME/findings`.
 The `fuzz-cgroup.sh` has to be run as root.
 
-`simple-http-server.py` can be used to access metrics over HTTP.
-
 Example:
 
 ```bash
@@ -19,3 +17,5 @@ Example:
 # (f)indings, 1x (o)penssl, 1x (t)or, (p)lots, (f)indings
 */5 * * * *   /opt/fuzz-utils/fuzz.sh -f -o 1 -t 1 -p -f
 ```
+
+`simple-http-server.sh` provides a simple Python HTTP server.

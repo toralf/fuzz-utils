@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import os
 import re
 import socket
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -33,11 +34,16 @@ def main():
     parser.add_argument(
         "--address", type=str, help="default: localhost", default="localhost"
     )
+    parser.add_argument(
+        "--directory", type=str, help="default: /dev/null", default="/dev/null"
+    )
     parser.add_argument("--port", type=int, help="default: 1234", default=1234)
     parser.add_argument(
         "--is_ipv6", type=bool, help="mark ADDRESS as IPv6", default=False
     )
     args = parser.parse_args()
+
+    os.chdir(args.directory)
 
     if args.is_ipv6 or re.match(":", args.address):
         address = str(args.address).replace("[", "").replace("]", "")
@@ -45,7 +51,7 @@ def main():
     else:
         server = HTTPServer((args.address, args.port), MyHandler)
 
-    logging.info("running at %s at %s", args.address, args.port)
+    logging.info("running at %s at %s in %s", args.address, args.port, args.directory)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

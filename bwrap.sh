@@ -3,7 +3,7 @@
 # set -x
 
 # example call:
-# sudo simple-http-server.sh webuser --address 1.2.3.4 --port 56789 --directory /tmp/www
+# simple-http-server.sh webuser --address 1.2.3.4 --port 56789 --directory /tmp/www
 
 set -euf
 export LANG=C.utf8
@@ -25,10 +25,5 @@ sandbox=(env -i
 )
 
 [[ $# -ne 0 ]]
-run_as=${1-}
-id "$run_as" 1>/dev/null
-shift
 
-pyfile=$(dirname $0)/$(basename $0 | sed -e 's,.sh$,.py,')
-
-"${sandbox[@]}" sudo -u $run_as -- $pyfile ${@}
+"${sandbox[@]}" -- ${@}

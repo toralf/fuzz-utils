@@ -13,7 +13,6 @@ export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 sandbox=(env -i
   /usr/bin/bwrap
   --clearenv
-  --die-with-parent
   --unshare-cgroup
   --unshare-ipc
   --unshare-pid

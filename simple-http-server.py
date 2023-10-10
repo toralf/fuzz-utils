@@ -27,7 +27,7 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 def main():
     logging.basicConfig(
-        format="%(asctime)s %(name)s %(levelname)s + %(message)s", level=logging.INFO
+        format="%(asctime)s %(levelname)s %(message)s", level=logging.DEBUG
     )
     logging.debug("Parsing args...")
     parser = argparse.ArgumentParser()
@@ -51,7 +51,7 @@ def main():
     else:
         server = HTTPServer((args.address, args.port), MyHandler)
 
-    logging.info("running at %s at %s in %s", args.address, args.port, args.directory)
+    logging.info("running at %s at %i in %s", args.address, args.port, args.directory)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

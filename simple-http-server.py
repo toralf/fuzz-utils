@@ -27,7 +27,7 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 def main():
     logging.basicConfig(
-        format="%(asctime)s %(levelname)s %(message)s", level=logging.DEBUG
+        format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO
     )
     logging.debug("Parsing args...")
     parser = argparse.ArgumentParser()

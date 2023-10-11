@@ -4,11 +4,15 @@
 
 fuzz testing of Tor and OpenSSL using [AFL++](https://github.com/AFLplusplus/AFLplusplus/)
 
-`fuzz.sh` is the entry point, `fuzz-lib-openssl.sh` and `fuzz-lib-tor.sh` do provide target specific helper libs.
+`fuzz.sh` is the entry point.
+`fuzz-*.sh` do provide target specific functionality and cgroup handling.
 
-`/tmp/torproject/fuzzing` should be a _tmpfs_ to avoid heavy I/O stress to the disk.
+The directory `/tmp/torproject/fuzzing` is used as output.
 Findings will be synced from there to `$HOME/findings`.
-The `fuzz-cgroup.sh` has to be run as root.
+It should be a _tmpfs_ to avoid heavy I/O stress to the disk.
+
+The `fuzz-cgroup.sh` needs root permissions.
+Therefore tweak your local sudoers.d file.
 
 Example:
 
@@ -19,3 +23,10 @@ Example:
 ```
 
 `simple-http-server.sh` provides a simple Python HTTP server.
+A separate sandbox is provided by `bwrap.sh` which uses [bubblewrap](https://github.com/containers/bubblewrap/), e.g.:
+
+```bash
+./bwrap.sh ./simple-http-server.py --address 1.2.3.4 --port 56789 --directory /tmp/www
+```
+
+Each sandbox invocation needs 2 or more namespace entries, so tweak the sysctl value _user.max_user_namespaces_ accordingly.

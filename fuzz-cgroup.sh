@@ -48,4 +48,5 @@ if [[ $owner != "torproject" ]]; then
   exit 1
 fi
 
+export CGROUP_LOGLEVEL=ERROR
 PutIntoCgroup $1 $2

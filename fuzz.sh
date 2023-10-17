@@ -236,10 +236,6 @@ export AFL_MAP_SIZE=70144
 # log file readability
 export AFL_NO_COLOUR=1
 
-export CGROUP_LOGLEVEL=ERROR
-
-fuzzdir="/tmp/torproject/fuzzing"
-
 if [[ $# -eq 0 ]]; then
   echo ' a parameter is required' >&2
   exit 1
@@ -249,11 +245,7 @@ lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp INT QUIT TERM EXIT
 
-if [[ ! -d $fuzzdir ]]; then
-  mkdir -p $fuzzdir
-  echo -e "User-agent: *\nDisallow: /\n" >$fuzzdir/robots.txt
-fi
-
+fuzzdir="/tmp/torproject/fuzzing"
 if [[ ! -d $fuzzdir/aborted ]]; then
   mkdir $fuzzdir/aborted
 fi

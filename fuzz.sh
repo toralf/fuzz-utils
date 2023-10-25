@@ -247,7 +247,7 @@ trap cleanUp INT QUIT TERM EXIT
 
 fuzzdir="/tmp/torproject/fuzzing"
 if [[ ! -d $fuzzdir/aborted ]]; then
-  mkdir $fuzzdir/aborted
+  mkdir -p $fuzzdir/aborted
 fi
 
 while getopts fo:pt: opt; do

@@ -85,8 +85,8 @@ function lock() {
 }
 
 function plotData() {
-  for d in $(ls -d $fuzzdir/{openssl,tor}_* 2>/dev/null); do
-    afl-plot $d/default $d &>/dev/null || continue
+  for d in $(ls -d $fuzzdir/*/default/ 2>/dev/null); do
+    afl-plot $d $(dirname $d) &>/dev/null
   done
 }
 

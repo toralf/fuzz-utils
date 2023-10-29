@@ -147,7 +147,7 @@ function runFuzzers() {
     rm -rf $tmpdir
 
   else
-    ((delta = delta))
+    ((delta = -delta))
     echo "stopping $delta $software: "
     ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null |
       shuf -n $delta |

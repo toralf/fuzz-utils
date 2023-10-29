@@ -31,8 +31,7 @@ function checkForFindings() {
 
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
     if tail -v -n 7 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
-      local d
-      d=$(dirname $i)
+      local d=$(dirname $i)
       echo " $d is aborted"
       mv $d $fuzzdir/aborted
     fi
@@ -102,7 +101,7 @@ function getFuzzerCandidates() {
   # prefer a "non-running non-aborted" (1st) over a "non-running but aborted" (2nd), but choose at least one (3rd)
   getFuzzers $software |
     shuf |
-    while read -r exe idir add; do
+    while read -r exe input_dir add; do
       if ! ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_${exe}_* &>/dev/null; then
         if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
           target=$tmpdir/next.1st
@@ -112,7 +111,7 @@ function getFuzzerCandidates() {
       else
         target=$tmpdir/next.3rd
       fi
-      echo "$exe $idir $add" >>$target
+      echo "$exe $input_dir $add" >>$target
     done
   cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
 }
@@ -169,40 +168,30 @@ function runFuzzers() {
 }
 
 function startAFuzzer() {
-  local fuzzer=${1?:name ?!}
-  local exe=${2?:exe ?!}
-  local idir=${3?:idir ?!}
+  local fuzzer=${1?}
+  local exe=${2?}
+  local input_dir=${3?}
   shift 3
   local add=${*-}
 
   cd ~/sources/$software
 
-  local fdir=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
-  local odir=$fuzzdir/$fdir
-  mkdir -p $odir
+  local fuzz_dirname=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
+  local output_dir=$fuzzdir/$fuzz_dirname
+  mkdir -p $output_dir
 
-  cp $exe $odir
-  # TODO: move this quirk to fuzz-lib-openssl.sh ?
+  cp $exe $output_dir
+  # for the reproducer needed
   if [[ $software == "openssl" ]]; then
-    cp ${exe}-test $odir
+    cp ${exe}-test $output_dir
   fi
 
-  # use a tmpfs instead of the device
-  export AFL_TMPDIR=$odir
-
-  cd $odir
-
-  nice -n 3 /usr/bin/afl-fuzz -i $idir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
+  export AFL_TMPDIR=$output_dir
+  cd $output_dir
+  nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
   echo -n "    $fuzzer"
-  if ! sudo $(dirname $0)/fuzz-cgroup.sh $fdir $pid; then
-    echo " sth went wrong, killing $pid ..." >&2
-    kill -15 $pid
-    sleep 5
-    if kill -0 $pid; then
-      kill -9 $pid
-    fi
-  fi
+  sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid
 }
 
 #######################################################################

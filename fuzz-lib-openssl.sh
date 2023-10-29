@@ -31,10 +31,10 @@ function getFuzzers() {
 
       case $fuzzer in
       bignum) continue ;; # https://github.com/openssl/openssl/issues/15356
-      *) add="" ;;
       esac
 
-      echo $fuzzer $exe $idir $add
+      dict=~/sources/$software/fuzz/corpora/$fuzzer
+      echo $fuzzer $exe $idir -x $dict
     done
 }
 

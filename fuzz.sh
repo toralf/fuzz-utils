@@ -39,12 +39,10 @@ function checkForFindings() {
   done
 
   for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null); do
-    local pid
-    pid=$(grep "^fuzzer_pid" $i | awk '{ print $3 }')
-    if ! kill -0 $pid 2>/dev/null; then
-      local d
-      d=$(dirname $(dirname $i))
-      echo " OOPS: $d is not running"
+    local pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
+    if [[ -n $pid ]] && ! kill -0 $pid 2>/dev/null; then
+      local d=$(dirname $(dirname $i))
+      echo " $d is dead (pid=$pid)"
       mv $d $fuzzdir/aborted
     fi
   done

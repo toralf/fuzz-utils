@@ -21,6 +21,7 @@ function PutIntoCgroup() {
   for i in cpu memory; do
     echo 1 >/sys/fs/cgroup/$i/$name/notify_on_release
     if ! echo "$pid" >/sys/fs/cgroup/$i/$name/tasks; then
+      echo " could not cgroup $pid for $i" >&2
       return 1
     fi
   done

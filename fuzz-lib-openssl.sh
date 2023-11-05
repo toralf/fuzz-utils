@@ -20,21 +20,16 @@ function getFuzzers() {
 
   ls ~/sources/$software/fuzz/corpora/ |
     while read -r fuzzer; do
-      idir=~/sources/$software/fuzz/corpora/$fuzzer
-      if [[ ! -d $idir ]]; then
-        continue
-      fi
       exe=~/sources/$software/fuzz/$fuzzer
-      if [[ ! -x $exe ]]; then
-        continue
-      fi
+      idir=~/sources/$software/fuzz/corpora/$fuzzer
 
       case $fuzzer in
       bignum) continue ;; # https://github.com/openssl/openssl/issues/15356
       esac
 
-      dict=~/sources/$software/fuzz/corpora/$fuzzer
-      echo $fuzzer $exe $idir -x $dict
+      if [[ -x $exe && -d $idir ]]; then
+        echo $fuzzer $exe $idir
+      fi
     done
 }
 

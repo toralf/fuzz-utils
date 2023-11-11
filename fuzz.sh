@@ -34,6 +34,7 @@ function checkForFindings() {
       local d=$(dirname $i)
       echo " $d is aborted"
       mv $d $fuzzdir/aborted
+      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
     fi
   done
 
@@ -43,6 +44,7 @@ function checkForFindings() {
       local d=$(dirname $(dirname $i))
       echo " $d is dead (pid=$pid)"
       mv $d $fuzzdir/aborted
+      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
     fi
   done
 
@@ -102,7 +104,7 @@ function getFuzzerCandidates() {
   getFuzzers $software |
     shuf |
     while read -r exe input_dir add; do
-      if ! ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_${exe}_* &>/dev/null; then
+      if ! ls -d $cgdomain/${software}_${exe}_* &>/dev/null; then
         if ! ls -d $fuzzdir/aborted/${software}_${exe}_* &>/dev/null; then
           target=$tmpdir/next.1st
         else
@@ -118,53 +120,57 @@ function getFuzzerCandidates() {
 
 function runFuzzers() {
   local wanted=${1?}
-  local running
-  running=$(ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null | wc -w)
+  local running=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
 
-  local delta
-  if ! ((delta = wanted - running)); then
-    return 0
-  fi
+  local delta=$((wanted - running))
 
   if [[ $delta -gt 0 ]]; then
+    echo -en "\n starting $delta x $software: "
+
     if softwareWasCloned || softwareWasUpdated; then
       cd ~/sources/$software || return 1
       echo -e "\n building $software ...\n"
       buildSoftware
     fi
 
-    echo -en "\n starting $delta fuzzer(s) for $software: "
     local tmpdir
     tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
     getFuzzerCandidates |
       head -n $delta |
       while read -r line; do
-        startAFuzzer $line
+        if ! startAFuzzer $line; then
+          echo -e "\n an issue occured for $line\n" >&2
+          return 1
+        fi
       done
     rm -rf $tmpdir
+    echo -e "\n\n"
 
-  else
+  elif [[ $delta -lt 0 ]]; then
     ((delta = -delta))
-    echo "stopping $delta $software: "
-    ls -d /sys/fs/cgroup/cpu/local/fuzz/${software}_* 2>/dev/null |
+    echo "stopping $delta x $software: "
+    ls -d $cgdomain/${software}_* 2>/dev/null |
       shuf -n $delta |
       while read -r d; do
-        # file is not immediately available
         fuzzer=$(basename $d)
         statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
+        # stat file is not immediately filled after fuzzer start
         if [[ -s $statfile ]]; then
           pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
           echo -n "    pid from fuzzer_stats of $fuzzer: $pid "
           kill -15 $pid
           echo
         else
-          tasks=$(cat $d/tasks)
-          echo -n "    cgroup ($fuzzer): $tasks"
-          kill -15 $tasks
+          pids=$(cat $d/cgroup.procs)
+          if [[ -n $pids ]]; then
+            echo -n "    kill cgroup tasks of $fuzzer: $pids"
+            xargs -n 1 kill -15 <<<$pids
+          fi
         fi
+        sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer
       done
+    echo -e "\n\n"
   fi
-  echo -e "\n\n"
 }
 
 function startAFuzzer() {
@@ -236,6 +242,8 @@ fuzzdir="/tmp/torproject/fuzzing"
 if [[ ! -d $fuzzdir/aborted ]]; then
   mkdir -p $fuzzdir/aborted
 fi
+
+cgdomain=/sys/fs/cgroup/fuzzing
 
 while getopts fo:pt: opt; do
   case $opt in

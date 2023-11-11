@@ -2,29 +2,31 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # set -x
 
-# helper to put given fuzzer PID under CGroup control
-
-# the "local" cgroup could be further limited, e.g. by https://github.com/toralf/tinderbox/blob/master/bin/cgroup.sh
-function PutIntoCgroup() {
-  local name=/local/fuzz/${1?}
+function CreateCgroup() {
+  local name=$cgdomain/${1?}
   local pid=${2?}
 
-  if ! cgcreate -g cpu,memory:$name; then
-    return 1
+  if [[ ! -d $cgdomain ]]; then
+    mkdir $cgdomain
+    echo "+cpu +memory" >$cgdomain/cgroup.subtree_control
+
+    echo "400" >$cgdomain/cpu.weight
+    echo "40G" >$cgdomain/memory.max
+    echo "20G" >$cgdomain/memory.swap.max
   fi
 
-  # slice is 10us
-  cgset -r cpu.cfs_quota_us=105000 $name
-  cgset -r memory.limit_in_bytes=20G $name
-  cgset -r memory.memsw.limit_in_bytes=30G $name
+  mkdir $name || return 1
+  echo "$pid" >$name/cgroup.procs
+}
 
-  for i in cpu memory; do
-    echo 1 >/sys/fs/cgroup/$i/$name/notify_on_release
-    if ! echo "$pid" >/sys/fs/cgroup/$i/$name/tasks; then
-      echo " could not cgroup $pid for $i" >&2
-      return 1
-    fi
-  done
+function KillCgroup() {
+  local name=$cgdomain/${1?}
+
+  if grep -q 'populated 0' $name/cgroup.events; then
+    rmdir $name
+  else
+    return 1
+  fi
 }
 
 #######################################################################
@@ -38,16 +40,10 @@ if [[ "$(whoami)" != "root" ]]; then
   exit 1
 fi
 
-if [[ $# -ne 2 ]]; then
-  echo " wrong # of args"
-  exit 1
-fi
+cgdomain=/sys/fs/cgroup/fuzzing
 
-owner=$(ps -o user= -p $2)
-if [[ $owner != "torproject" ]]; then
-  echo " wrong owner '$owner' for pid $2"
-  exit 1
+if [[ $# -eq 2 ]]; then
+  CreateCgroup $1 $2
+elif [[ $# -eq 1 ]]; then
+  KillCgroup $1
 fi
-
-export CGROUP_LOGLEVEL=ERROR
-PutIntoCgroup $1 $2

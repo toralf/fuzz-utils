@@ -17,8 +17,10 @@ class HTTPServerV6(HTTPServer):
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         try:
-            logging.debug(self.requestline)
-            return SimpleHTTPRequestHandler.do_GET(self)
+            address = self.address_string()
+            if not address.startswith("47.128."):
+                logging.debug(self.requestline)
+                return SimpleHTTPRequestHandler.do_GET(self)
         except BrokenPipeError:
             logging.info("pipe broken")
         except Exception as e:

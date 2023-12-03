@@ -5,6 +5,7 @@
 # user.max_user_namespaces must be greater than zero
 # example call:
 # bwrap.sh simple-http-server.py --address 1.2.3.4 --port 56789 --directory /tmp/www
+# https://github.com/containers/bubblewrap
 
 set -euf
 export LANG=C.utf8

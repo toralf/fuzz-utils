@@ -15,8 +15,10 @@ function CreateCgroup() {
     echo "20G" >$cgdomain/memory.swap.max
   fi
 
-  mkdir $name || return 1
+  mkdir $name || return 13
   echo "$pid" >$name/cgroup.procs
+  echo "8G" >$name/memory.max
+  echo "0G" >$name/memory.swap.max
 }
 
 function KillCgroup() {

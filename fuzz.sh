@@ -196,7 +196,7 @@ function startAFuzzer() {
   cd $output_dir
   nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
-  echo -n "\n    started: $fuzzer (pid=$pid)\n"
+  echo -e "\n    started: $fuzzer (pid=$pid)\n"
   sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid
 }
 

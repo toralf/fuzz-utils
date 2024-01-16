@@ -29,6 +29,10 @@ function checkForFindings() {
       rm $tmpfile
     done
 
+  if [[ ! -d $fuzzdir/aborted ]]; then
+    mkdir -p $fuzzdir/aborted
+  fi
+
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
     if tail -v -n 7 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
       local d=$(dirname $i)
@@ -239,11 +243,7 @@ lock
 trap cleanUp INT QUIT TERM EXIT
 
 fuzzdir="/tmp/torproject/fuzzing"
-if [[ ! -d $fuzzdir/aborted ]]; then
-  mkdir -p $fuzzdir/aborted
-fi
-
-cgdomain=/sys/fs/cgroup/fuzzing
+cgdomain="/sys/fs/cgroup/fuzzing"
 
 while getopts fo:pt: opt; do
   case $opt in

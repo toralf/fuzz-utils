@@ -17,7 +17,11 @@ function checkForFindings() {
       tmpfile=$(mktemp /tmp/$(basename $0)_XXXXXX)
       find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$tmpfile
       if [[ -s $tmpfile ]]; then
-        echo -e "\n new findings for $b\n"
+        if grep -q 'crashes' $tmpfile; then
+          echo -e "\n new crash(s) found for $b\n"
+        else
+          echo -e "\n new hang(s) found for $b\n"
+        fi
         rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/
         echo
         chmod -R g+r ~/findings/$b

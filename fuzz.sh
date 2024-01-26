@@ -33,16 +33,15 @@ function checkForFindings() {
       rm $tmpfile
     done
 
-  if [[ ! -d $fuzzdir/aborted ]]; then
-    mkdir -p $fuzzdir/aborted
-  fi
-
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
     if tail -v -n 7 $i | colourStrip | grep -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
       local d=$(dirname $i)
       echo " $d finished"
       if grep -F 'Statistics:' $d/fuzz.log | grep -v ', 0 crashes saved' >&2; then
         echo -e "\n $d contains CRASHes !!!\n" >&2
+      fi
+      if [[ ! -d $fuzzdir/aborted ]]; then
+        mkdir -p $fuzzdir/aborted
       fi
       mv $d $fuzzdir/aborted
       sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
@@ -55,7 +54,10 @@ function checkForFindings() {
     if [[ -n $pid ]] && ! kill -0 $pid 2>/dev/null; then
       local d=$(dirname $(dirname $i))
       echo " $d is dead (pid=$pid)" >&2
-      mv $d $fuzzdir/aborted
+      if [[ ! -d $fuzzdir/died ]]; then
+        mkdir -p $fuzzdir/died
+      fi
+      mv $d $fuzzdir/died
       sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
     fi
   done

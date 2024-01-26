@@ -38,21 +38,25 @@ function checkForFindings() {
   fi
 
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
-    if tail -v -n 7 $i | colourStrip | grep -B 10 -A 10 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
+    if tail -v -n 7 $i | colourStrip | grep -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
       local d=$(dirname $i)
-      echo " $d is aborted"
+      echo " $d finished"
+      if grep -F 'Statistics:' $d/fuzz.log | grep -v ', 0 crashes saved' >&2; then
+        echo -e "\n $d contains CRASHes !!!\n" >&2
+      fi
       mv $d $fuzzdir/aborted
-      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
+      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
     fi
   done
 
+  # unexpected
   for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null); do
     local pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
     if [[ -n $pid ]] && ! kill -0 $pid 2>/dev/null; then
       local d=$(dirname $(dirname $i))
-      echo " $d is dead (pid=$pid)"
+      echo " $d is dead (pid=$pid)" >&2
       mv $d $fuzzdir/aborted
-      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
+      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
     fi
   done
 
@@ -175,7 +179,7 @@ function runFuzzers() {
             xargs -n 1 kill -15 <<<$pids
           fi
         fi
-        sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer
+        sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer # kill it
       done
     echo -e "\n\n"
   fi
@@ -200,12 +204,12 @@ function startAFuzzer() {
     cp ${exe}-test $output_dir
   fi
 
-  export AFL_TMPDIR=$output_dir
   cd $output_dir
+  export AFL_TMPDIR=$output_dir
   nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
   echo -e "\n    started: $fuzzer (pid=$pid)\n"
-  sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid
+  sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid # create it
 }
 
 #######################################################################
@@ -236,6 +240,8 @@ export AFL_MAP_SIZE=70144
 
 # log file readability
 export AFL_NO_COLOUR=1
+export ALWAYS_COLORED=0
+export USE_COLOR=0
 
 if [[ $# -eq 0 ]]; then
   echo ' a parameter is required' >&2

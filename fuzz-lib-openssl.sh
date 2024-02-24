@@ -25,9 +25,9 @@ function getFuzzers() {
 
       add=""
       case $fuzzer in
-      asn1) add="-t 5";;
+      asn1) add="-t 5" ;;
       bignum) continue ;; # https://github.com/openssl/openssl/issues/15356
-      decode) add="-t 10";;
+      decode) add="-t 10" ;;
       esac
 
       if [[ -x $exe && -d $idir ]]; then

@@ -27,7 +27,7 @@ function CreateCgroup() {
   echo "0G" >$name/memory.swap.max
 }
 
-function KillCgroup() {
+function RemoveCgroup() {
   local name=$cgdomain/${1?}
 
   if grep -q 'populated 0' $name/cgroup.events; then
@@ -53,5 +53,5 @@ cgdomain=/sys/fs/cgroup/fuzzing
 if [[ $# -eq 2 ]]; then
   CreateCgroup $1 $2
 elif [[ $# -eq 1 ]]; then
-  KillCgroup $1
+  RemoveCgroup $1
 fi

@@ -34,7 +34,7 @@ function checkForFindings() {
     done
 
   for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
-    if tail -v -n 7 $i | colourStrip | grep -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted'; then
+    if tail -v -n 7 $i | colourStrip | grep -F -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted' -e '+++ Baking aborted programmatically +++'; then
       local d=$(dirname $i)
       echo " $d finished"
       if grep -F 'Statistics:' $d/fuzz.log | grep -v ', 0 crashes saved' >&2; then
@@ -48,17 +48,20 @@ function checkForFindings() {
     fi
   done
 
-  # unexpected
   for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null); do
+    local d=$(dirname $(dirname $i))
     local pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
-    if [[ -n $pid ]] && ! kill -0 $pid 2>/dev/null; then
-      local d=$(dirname $(dirname $i))
-      echo " $d is dead (pid=$pid)" >&2
-      if [[ ! -d $fuzzdir/died ]]; then
-        mkdir -p $fuzzdir/died
+    if [[ -n $pid ]]; then
+      if ! kill -0 $pid 2>/dev/null; then
+        echo " $d is dead (pid=$pid)" >&2
+        if [[ ! -d $fuzzdir/died ]]; then
+          mkdir -p $fuzzdir/died
+        fi
+        mv $d $fuzzdir/died
+        sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # delete Cgroup
       fi
-      mv $d $fuzzdir/died
-      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
+    else
+      echo -e "$d is in an unexpected state and has no pid" >&2
     fi
   done
 

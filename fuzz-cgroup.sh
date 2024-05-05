@@ -30,7 +30,7 @@ function CreateCgroup() {
 function RemoveCgroup() {
   local name=$cgdomain/${1?}
 
-  if grep -q 'populated 0' $name/cgroup.events; then
+  if grep -q 'populated 0' $name/cgroup.events 2>/dev/null; then
     rmdir $name
   else
     return 1

@@ -240,8 +240,9 @@ export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
 export AFL_SHUFFLE_QUEUE=1
 
-# affects the run of an instrumented fuzzer
+# affects the run of a fuzzer
 export AFL_MAP_SIZE=70144
+export PERFORMANCE=1
 
 # log file readability
 export AFL_NO_COLOUR=1

@@ -117,6 +117,9 @@ function repoWasUpdated() {
 }
 
 function getFuzzerCandidates() {
+  local tmpdir
+  tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
+
   # prefer a "non-running non-aborted" (1st) over a "non-running but aborted" (2nd), but choose at least one (3rd)
   getFuzzers $software |
     shuf |
@@ -132,7 +135,9 @@ function getFuzzerCandidates() {
       fi
       echo "$exe $input_dir $add" >>$target
     done
+
   cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
+  rm -r $tmpdir
 }
 
 function runFuzzers() {
@@ -142,16 +147,14 @@ function runFuzzers() {
   local delta=$((wanted - running))
 
   if [[ $delta -gt 0 ]]; then
-    echo -en "\n starting $delta x $software: "
+    echo -en "\n job changes: $delta x $software: "
 
-    if softwareWasCloned || softwareWasUpdated; then
+    if softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
       cd ~/sources/$software || return 1
       echo -e "\n building $software ...\n"
       buildSoftware
     fi
 
-    local tmpdir
-    tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
     getFuzzerCandidates |
       head -n $delta |
       while read -r line; do
@@ -160,8 +163,6 @@ function runFuzzers() {
           return 1
         fi
       done
-    rm -rf $tmpdir
-    echo -e "\n\n"
 
   elif [[ $delta -lt 0 ]]; then
     ((delta = -delta))
@@ -186,7 +187,6 @@ function runFuzzers() {
         fi
         sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer # kill it
       done
-    echo -e "\n\n"
   fi
 }
 

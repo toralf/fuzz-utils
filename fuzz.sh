@@ -117,9 +117,6 @@ function repoWasUpdated() {
 }
 
 function getFuzzerCandidates() {
-  local tmpdir
-  tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
-
   # prefer a "non-running non-aborted" (1st) over a "non-running but aborted" (2nd), but choose at least one (3rd)
   getFuzzers $software |
     shuf |
@@ -137,7 +134,6 @@ function getFuzzerCandidates() {
     done
 
   cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
-  rm -r $tmpdir
 }
 
 function runFuzzers() {
@@ -155,6 +151,8 @@ function runFuzzers() {
       buildSoftware
     fi
 
+    local tmpdir
+    tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
     getFuzzerCandidates |
       head -n $delta |
       while read -r line; do
@@ -163,6 +161,7 @@ function runFuzzers() {
           return 1
         fi
       done
+    rm -r $tmpdir
 
   elif [[ $delta -lt 0 ]]; then
     ((delta = -delta))

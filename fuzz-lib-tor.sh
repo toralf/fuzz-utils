@@ -31,12 +31,12 @@ function getFuzzers() {
       exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer
       idir=~/sources/fuzzing-corpora/$fuzzer
 
-      # optional: dictionary for the fuzzer
-      dict=~/sources/$software/src/test/fuzz/dict/$fuzzer
-      [[ -s $dict ]] && add="-x $dict" || add=""
+      # dictionary
+      f=~/sources/$software/src/test/fuzz/dict/$fuzzer
+      [[ -s $f ]] && dict="-x $f" || dict=""
 
       if [[ -x $exe && -d $idir ]]; then
-        echo $fuzzer $exe $idir $add
+        echo $fuzzer $exe $idir $dict
       fi
     done
 }

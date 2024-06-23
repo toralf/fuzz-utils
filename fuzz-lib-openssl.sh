@@ -23,15 +23,8 @@ function getFuzzers() {
       exe=~/sources/$software/fuzz/$fuzzer
       idir=~/sources/$software/fuzz/corpora/$fuzzer
 
-      add=""
-      case $fuzzer in
-      asn1) add="-t 5" ;;
-      bignum) continue ;; # https://github.com/openssl/openssl/issues/15356
-      decode) add="-t 10" ;;
-      esac
-
       if [[ -x $exe && -d $idir ]]; then
-        echo $fuzzer $exe $idir $add
+        echo $fuzzer $exe $idir
       fi
     done
 }

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # set -x
 
-# start/stop AFL fuzzers, check for findings, plot metrics and more
+# wrapper for https://github.com/AFLplusplus/AFLplusplus to fuzz (currently) Tor and OpenSSL
 
 function checkForFindings() {
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
@@ -145,7 +145,7 @@ function runFuzzers() {
   if [[ $delta -gt 0 ]]; then
     echo -en "\n job changes: $delta x $software: "
 
-    if softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
+    if [[ $force_build -eq 1 ]] || softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
       cd ~/sources/$software || return 1
       echo -e "\n building $software ...\n"
       buildSoftware
@@ -261,20 +261,19 @@ trap cleanUp INT QUIT TERM EXIT
 fuzzdir="/tmp/torproject/fuzzing"
 cgdomain="/sys/fs/cgroup/fuzzing"
 
-while getopts fo:pt: opt; do
+force_build=0
+
+while getopts bfo:pt: opt; do
   case $opt in
-  f)
-    checkForFindings
-    ;;
+  b) force_build=1 ;;
+  f) checkForFindings ;;
   o)
     software="openssl"
     # shellcheck source=./fuzz-lib-openssl.sh
     source $(dirname $0)/fuzz-lib-${software}.sh
     runFuzzers "$OPTARG"
     ;;
-  p)
-    plotData
-    ;;
+  p) plotData ;;
   t)
     software="tor"
     # shellcheck source=./fuzz-lib-tor.sh

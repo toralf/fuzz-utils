@@ -47,6 +47,5 @@ function softwareWasUpdated() {
   if ! cd ~/sources/$software; then
     return 1
   fi
-  git submodule update --remote --recursive fuzz/corpora
-  repoWasUpdated ~/sources/$software
+  repoWasUpdated ~/sources/$software || git submodule update --remote --recursive fuzz/corpora | grep -q '.'
 }

@@ -32,40 +32,42 @@ function checkForFindings() {
       fi
       rm $tmpfile
     done
+}
 
-  for i in $(ls $fuzzdir/*/fuzz.log 2>/dev/null); do
-    if tail -v -n 7 $i | colourStrip | grep -F -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted' -e '+++ Baking aborted programmatically +++'; then
-      local d=$(dirname $i)
-      echo " $d finished"
-      if grep -F 'Statistics:' $d/fuzz.log | grep -v ', 0 crashes saved' >&2; then
-        echo -e "\n $d contains CRASHes !!!\n" >&2
-      fi
-      if [[ ! -d $fuzzdir/aborted ]]; then
-        mkdir -p $fuzzdir/aborted
-      fi
-      mv $d $fuzzdir/aborted
-      sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
-    fi
-  done
-
-  for i in $(ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null); do
-    local d=$(dirname $(dirname $i))
-    local pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
-    if [[ -n $pid ]]; then
-      if ! kill -0 $pid 2>/dev/null; then
-        echo " $d is dead (pid=$pid)" >&2
-        if [[ ! -d $fuzzdir/died ]]; then
-          mkdir -p $fuzzdir/died
+function checkForAborts() {
+  ls $fuzzdir/*/fuzz.log 2>/dev/null |
+    while read i; do
+      if tail -v -n 7 $i | colourStrip | grep -F -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted' -e '+++ Baking aborted programmatically +++'; then
+        d=$(dirname $i)
+        echo " $d finished"
+        if grep -F 'Statistics:' $d/fuzz.log | grep -v ', 0 crashes saved'; then
+          echo -e "\n $d contains CRASHes !!!\n"
         fi
-        mv $d $fuzzdir/died
-        sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # delete Cgroup
+        if [[ ! -d $fuzzdir/aborted ]]; then
+          mkdir -p $fuzzdir/aborted
+        fi
+        mv $d $fuzzdir/aborted
+        sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
       fi
-    else
-      echo -e "$d is in an unexpected state and has no pid" >&2
-    fi
-  done
+    done
 
-  return 0
+  ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null |
+    while read i; do
+      d=$(dirname $(dirname $i))
+      pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
+      if [[ -n $pid ]]; then
+        if ! kill -0 $pid 2>/dev/null; then
+          echo " $d is dead (pid=$pid)" >&2
+          if [[ ! -d $fuzzdir/died ]]; then
+            mkdir -p $fuzzdir/died
+          fi
+          mv $d $fuzzdir/died
+          sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # delete Cgroup
+        fi
+      else
+        echo -e "$d is in an unexpected state and has no pid" >&2
+      fi
+    done
 }
 
 function cleanUp() {
@@ -157,7 +159,7 @@ function runFuzzers() {
       head -n $delta |
       while read -r line; do
         if ! startAFuzzer $line; then
-          echo -e "\n an issue occured for $line\n" >&2
+          echo -e "\n cannot start $line\n" >&2
           return 1
         fi
       done
@@ -263,8 +265,9 @@ cgdomain="/sys/fs/cgroup/fuzzing"
 
 force_build=0
 
-while getopts bfo:pt: opt; do
+while getopts abfo:pt: opt; do
   case $opt in
+  a) checkForAborts ;;
   b) force_build=1 ;;
   f) checkForFindings ;;
   o)

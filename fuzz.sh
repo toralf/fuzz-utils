@@ -45,7 +45,7 @@ function checkForFindings() {
 
 function checkForAborts() {
   ls $fuzzdir/*/fuzz.log 2>/dev/null |
-    while read i; do
+    while read -r i; do
       if tail -v -n 7 $i | colourStrip | grep -F -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted' -e '+++ Baking aborted programmatically +++'; then
         d=$(dirname $i)
         echo " $d finished"
@@ -61,7 +61,7 @@ function checkForAborts() {
     done
 
   ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null |
-    while read i; do
+    while read -r i; do
       d=$(dirname $(dirname $i))
       pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
       if [[ -n $pid ]]; then

@@ -18,9 +18,11 @@ function checkForFindings() {
       find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$tmpfile
       if [[ -s $tmpfile ]]; then
         if grep -q 'crashes' $tmpfile; then
-          echo -e "\n new crash(s) found for $b\n"
-        else
+          echo -e "\n new CRASH(s) found for $b\n"
+        elif grep -q 'hangs' $tmpfile; then
           echo -e "\n new hang(s) found for $b\n"
+        else
+          echo "woops" >&2
         fi
         rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/
         echo

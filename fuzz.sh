@@ -118,7 +118,7 @@ function plotData() {
 }
 
 function repoWasUpdated() {
-  cd $1 || return 1
+  cd $1 || exit 1
   local old
   old=$(getCommitId)
   git pull 1>/dev/null

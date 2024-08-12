@@ -24,8 +24,15 @@ function checkForFindings() {
         else
           echo "woops" >&2
         fi
-        rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/
-        echo
+
+        # handle races
+        n=5
+        while ((n--)); do
+          if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/; then
+            echo
+            break
+          fi
+        done
         chmod -R g+r ~/findings/$b
         find ~/findings/$b -type d -exec chmod g+x {} +
         tar -C ~/findings/ -czpf $tar_archive ./$b

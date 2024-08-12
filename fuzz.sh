@@ -186,8 +186,8 @@ function runFuzzers() {
   elif [[ $delta -lt 0 ]]; then
     ((delta = -delta))
     echo "stopping $delta x $software: "
-    ls -d $cgdomain/${software}_* 2>/dev/null |
-      shuf -n $delta |
+    ls -dt $cgdomain/${software}_* 2>/dev/null |
+      tail -n $delta |
       while read -r d; do
         fuzzer=$(basename $d)
         statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
@@ -202,6 +202,8 @@ function runFuzzers() {
           if [[ -n $pids ]]; then
             echo -n "    kill cgroup tasks of $fuzzer: $pids"
             xargs -n 1 kill -15 <<<$pids
+          else
+            echo -n "    no $pid for $d"
           fi
         fi
         sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer # kill it

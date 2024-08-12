@@ -150,8 +150,13 @@ function getFuzzerCandidates() {
 function runFuzzers() {
   local wanted=${1?}
   local running=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
+  local delta
 
-  local delta=$((wanted - running))
+  if [[ $wanted =~ ^[0-9]+$ ]]; then
+    delta=$((wanted - running))
+  else
+    delta=1
+  fi
 
   if [[ $delta -gt 0 ]]; then
     echo -en "\n job changes: $delta x $software: "
@@ -165,7 +170,11 @@ function runFuzzers() {
     local tmpdir
     tmpdir=$(mktemp -d /tmp/$(basename $0)_XXXXXX)
     getFuzzerCandidates |
-      head -n $delta |
+      if [[ $wanted =~ ^[0-9]+$ ]]; then
+        head -n $delta
+      else
+        grep "^$wanted "
+      fi |
       while read -r line; do
         if ! startAFuzzer $line; then
           echo -e "\n cannot start $line\n" >&2

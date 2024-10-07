@@ -8,23 +8,24 @@ function CreateCgroup() {
 
   # put all fuzzers under 1 sub group
   if [[ ! -d $cgdomain ]]; then
-    mkdir $cgdomain
-    echo "+cpu +cpuset +memory" >$cgdomain/cgroup.subtree_control
+    if mkdir $cgdomain 2>/dev/null; then
+      echo "+cpu +cpuset +memory" >$cgdomain/cgroup.subtree_control
 
-    # 4 vCPU for all
-    echo "$((4 * 100))" >$cgdomain/cpu.weight
-    echo "$((4 * 100000)) 100000" >$cgdomain/cpu.max
-    echo "40G" >$cgdomain/memory.max
-    echo "20G" >$cgdomain/memory.swap.max
+      # 4 vCPU for all fuzzers
+      echo "$((4 * 100))" >$cgdomain/cpu.weight
+      echo "$((4 * 100000))" >$cgdomain/cpu.max
+      echo "8G" >$cgdomain/memory.max
+      echo "0" >$cgdomain/memory.swap.max
+    fi
   fi
 
   mkdir $name || return 13
   echo "$pid" >$name/cgroup.procs
   # 1 vCPU per fuzzer
-  echo "$((100 * 1))" >$name/cpu.weight
-  echo "$((100000 * 1))" >$name/cpu.max
-  echo "8G" >$name/memory.max
-  echo "0G" >$name/memory.swap.max
+  echo "$((1 * 100))" >$name/cpu.weight
+  echo "$((1 * 100000))" >$name/cpu.max
+  echo "2G" >$name/memory.max
+  echo "0" >$name/memory.swap.max
 }
 
 function RemoveCgroup() {

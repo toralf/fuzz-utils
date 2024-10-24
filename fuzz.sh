@@ -220,7 +220,6 @@ function runFuzzers() {
         fi
         echo
       done
-    checkForAborts
   fi
 }
 

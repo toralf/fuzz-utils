@@ -22,8 +22,11 @@ function checkForFindings() {
         elif grep -q 'hangs' $tmpfile; then
           echo -e "\n new hang(s) found for $b\n"
         else
-          echo "woops" >&2
+          echo "woops: $tmpfile" >&2
+          exit 1
         fi
+
+        echo -e "\n reproducer:\n\n cd ~/findings/$b\n for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do time ./*-test \$i; echo; done\n\n"
 
         # handle races
         n=5
@@ -185,7 +188,7 @@ function runFuzzers() {
 
   elif [[ $delta -lt 0 ]]; then
     ((delta = -delta))
-    echo "stopping $delta x $software: "
+    echo -e "\n stopping $delta x $software: "
     ls -dt $cgdomain/${software}_* 2>/dev/null |
       tail -n $delta |
       while read -r d; do
@@ -200,14 +203,24 @@ function runFuzzers() {
         else
           pids=$(cat $d/cgroup.procs)
           if [[ -n $pids ]]; then
-            echo -n "    kill cgroup tasks of $fuzzer: $pids"
+            echo "   kill cgroup tasks of $fuzzer: $pids"
             xargs -n 1 kill -15 <<<$pids
+            sleep 10
+            pids=$(cat $d/cgroup.procs)
+            if [[ -n $pids ]]; then
+              echo "   get roughly with $pids"
+              xargs -n 1 kill -9 < <(cat $d/cgroup.procs)
+            fi
           else
-            echo -n "    no $pid for $d"
+            echo -n "   no $pid for $d"
           fi
         fi
-        sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer # kill it
+        if ! sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer; then
+          echo -e "\n woops ^^"
+        fi
+        echo
       done
+    checkForAborts
   fi
 }
 

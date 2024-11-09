@@ -150,6 +150,64 @@ function getFuzzerCandidates() {
   cat $tmpdir/next.{1st,2nd,3rd} 2>/dev/null
 }
 
+function startAFuzzer() {
+  local fuzzer=${1?}
+  local exe=${2?}
+  local input_dir=${3?}
+  shift 3
+  local add=${*-}
+
+  cd ~/sources/$software
+
+  local fuzz_dirname=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
+  local output_dir=$fuzzdir/$fuzz_dirname
+  mkdir -p $output_dir
+
+  cp $exe $output_dir
+  # for the reproducer needed
+  if [[ $software == "openssl" ]]; then
+    cp ${exe}-test $output_dir
+  fi
+
+  cd $output_dir
+  export AFL_TMPDIR=$output_dir
+  nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
+  local pid=$!
+  echo -e "\n    started: $fuzzer (pid=$pid)\n"
+  sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid # create it
+}
+
+function stopAFuzzer() {
+  local fuzzer=${1?}
+
+  local statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
+  # stat file is not immediately filled after fuzzer start
+  if [[ -s $statfile ]]; then
+    local pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
+    echo -n "    got pid from fuzzer_stats of $fuzzer: $pid "
+    kill -15 $pid
+    echo
+  else
+    local pids=$(cat $d/cgroup.procs)
+    if [[ -n $pids ]]; then
+      echo "   kill cgroup tasks of $fuzzer: $pids"
+      xargs -n 1 kill -15 <<<$pids
+      sleep 10
+      pids=$(cat $d/cgroup.procs)
+      if [[ -n $pids ]]; then
+        echo "   get roughly with $pids"
+        xargs -n 1 kill -9 < <(cat $d/cgroup.procs)
+      fi
+    else
+      echo -n "   got no pid for $d"
+    fi
+  fi
+  if ! sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer; then
+    echo -e "\n woops ^^"
+  fi
+  echo
+}
+
 function runFuzzers() {
   local wanted=${1?}
   local running=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
@@ -193,61 +251,9 @@ function runFuzzers() {
       tail -n $delta |
       while read -r d; do
         fuzzer=$(basename $d)
-        statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
-        # stat file is not immediately filled after fuzzer start
-        if [[ -s $statfile ]]; then
-          pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
-          echo -n "    pid from fuzzer_stats of $fuzzer: $pid "
-          kill -15 $pid
-          echo
-        else
-          pids=$(cat $d/cgroup.procs)
-          if [[ -n $pids ]]; then
-            echo "   kill cgroup tasks of $fuzzer: $pids"
-            xargs -n 1 kill -15 <<<$pids
-            sleep 10
-            pids=$(cat $d/cgroup.procs)
-            if [[ -n $pids ]]; then
-              echo "   get roughly with $pids"
-              xargs -n 1 kill -9 < <(cat $d/cgroup.procs)
-            fi
-          else
-            echo -n "   no $pid for $d"
-          fi
-        fi
-        if ! sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer; then
-          echo -e "\n woops ^^"
-        fi
-        echo
+        stopAFuzzer $fuzzer
       done
   fi
-}
-
-function startAFuzzer() {
-  local fuzzer=${1?}
-  local exe=${2?}
-  local input_dir=${3?}
-  shift 3
-  local add=${*-}
-
-  cd ~/sources/$software
-
-  local fuzz_dirname=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
-  local output_dir=$fuzzdir/$fuzz_dirname
-  mkdir -p $output_dir
-
-  cp $exe $output_dir
-  # for the reproducer needed
-  if [[ $software == "openssl" ]]; then
-    cp ${exe}-test $output_dir
-  fi
-
-  cd $output_dir
-  export AFL_TMPDIR=$output_dir
-  nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
-  local pid=$!
-  echo -e "\n    started: $fuzzer (pid=$pid)\n"
-  sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid # create it
 }
 
 #######################################################################

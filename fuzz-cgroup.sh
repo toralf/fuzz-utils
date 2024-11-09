@@ -26,6 +26,8 @@ function CreateCgroup() {
   echo "$((1 * 100000))" >$name/cpu.max
   echo "2G" >$name/memory.max
   echo "0" >$name/memory.swap.max
+
+  echo " created cgroup $name for pid $pid"
 }
 
 function RemoveCgroup() {
@@ -34,6 +36,7 @@ function RemoveCgroup() {
   if grep -q 'populated 0' $name/cgroup.events 2>/dev/null; then
     rmdir $name
   else
+    echo " cannot remove group $name"
     return 1
   fi
 }
@@ -52,7 +55,10 @@ fi
 cgdomain=/sys/fs/cgroup/fuzzing
 
 if [[ $# -eq 2 ]]; then
-  CreateCgroup $1 $2
+  if ! CreateCgroup $1 $2; then
+    RemoveCgroup $1
+    exit 1
+  fi
 elif [[ $# -eq 1 ]]; then
   RemoveCgroup $1
 fi

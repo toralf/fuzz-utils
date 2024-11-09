@@ -14,6 +14,7 @@ export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 sandbox=(env -i
   /usr/bin/bwrap
   --clearenv
+  --level-prefix
   --unshare-all
   --share-net
   --new-session

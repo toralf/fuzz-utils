@@ -58,26 +58,27 @@ function checkForAborts() {
         if [[ ! -d $fuzzdir/aborted ]]; then
           mkdir -p $fuzzdir/aborted
         fi
-        mv $d $fuzzdir/aborted
-        sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # kill it
+        if sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
+          mv $d $fuzzdir/aborted
+        fi
       fi
     done
 
   ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null |
     while read -r i; do
-      d=$(dirname $(dirname $i))
       pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
-      if [[ -n $pid ]]; then
-        if ! kill -0 $pid 2>/dev/null; then
-          echo " $d is dead (pid=$pid)" >&2
-          if [[ ! -d $fuzzdir/died ]]; then
-            mkdir -p $fuzzdir/died
-          fi
-          mv $d $fuzzdir/died
-          sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d) # delete Cgroup
+      if [[ -z $pid ]] || ! kill -0 $pid 2>/dev/null; then
+        d=$(dirname $(dirname $i))
+        echo -e "\n $d is DEAD (pid=$pid)\n"
+        if [[ ! -d $fuzzdir/died ]]; then
+          mkdir -p $fuzzdir/died
         fi
-      else
-        echo -e "$d is in an unexpected state and has no pid" >&2
+        if ! sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
+          echo -e " killing pids ..."
+          tac $cgdomain/$(basename $d)/cgroup.procs | xargs -n 1 -r kill -9
+        fi
+        mv $d $fuzzdir/died
+        sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
       fi
     done
 }
@@ -262,6 +263,15 @@ set -eu
 export LANG=C.utf8
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 
+if [[ $# -eq 0 ]]; then
+  echo ' a parameter is required' >&2
+  exit 1
+fi
+
+lck=/tmp/$(basename $0).lock
+lock
+trap cleanUp INT QUIT TERM EXIT
+
 export GIT_PAGER="cat"
 export PAGER="cat"
 
@@ -288,15 +298,6 @@ export AFL_NO_SYNC=1
 export AFL_NO_COLOUR=1
 export ALWAYS_COLORED=0
 export USE_COLOR=0
-
-if [[ $# -eq 0 ]]; then
-  echo ' a parameter is required' >&2
-  exit 1
-fi
-
-lck=/tmp/$(basename $0).lock
-lock
-trap cleanUp INT QUIT TERM EXIT
 
 fuzzdir="/tmp/torproject/fuzzing"
 cgdomain="/sys/fs/cgroup/fuzzing"

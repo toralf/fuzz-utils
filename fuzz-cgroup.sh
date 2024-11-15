@@ -6,6 +6,8 @@ function CreateCgroup() {
   local name=$cgdomain/${1?}
   local pid=${2?}
 
+  # stdout of the fuzzer can become huge, e.g. for OpenSSL cmp fuzzer, and goes to a tmpfs
+
   # put all fuzzers under 1 sub group
   if [[ ! -d $cgdomain ]]; then
     if mkdir $cgdomain 2>/dev/null; then
@@ -14,20 +16,20 @@ function CreateCgroup() {
       # 4 vCPU for all fuzzers
       echo "$((4 * 100))" >$cgdomain/cpu.weight
       echo "$((4 * 100000))" >$cgdomain/cpu.max
-      echo "8G" >$cgdomain/memory.max
-      echo "0" >$cgdomain/memory.swap.max
+      echo "20G" >$cgdomain/memory.max
     fi
   fi
 
-  mkdir $name || return 13
+  if ! mkdir $name; then
+    echo " cannot create cgroup $name for pid $pid" 2>&1
+    return 13
+  fi
+
   echo "$pid" >$name/cgroup.procs
   # 1 vCPU per fuzzer
   echo "$((1 * 100))" >$name/cpu.weight
   echo "$((1 * 100000))" >$name/cpu.max
-  echo "2G" >$name/memory.max
-  echo "0" >$name/memory.swap.max
-
-  echo " created cgroup $name for pid $pid"
+  echo "10G" >$name/memory.max
 }
 
 function RemoveCgroup() {

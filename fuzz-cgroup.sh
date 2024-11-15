@@ -35,11 +35,13 @@ function CreateCgroup() {
 function RemoveCgroup() {
   local name=$cgdomain/${1?}
 
-  if grep -q 'populated 0' $name/cgroup.events 2>/dev/null; then
-    rmdir $name
-  else
-    echo " cannot remove group $name"
-    return 1
+  if [[ -d $name ]]; then
+    if grep -q 'populated 0' $name/cgroup.events 2>/dev/null; then
+      rmdir $name
+    else
+      echo " cannot remove cgroup $name, procs: $(cat $name/cgroup.procs | xargs)"
+      return 1
+    fi
   fi
 }
 
@@ -54,7 +56,7 @@ if [[ "$(whoami)" != "root" ]]; then
   exit 1
 fi
 
-cgdomain=/sys/fs/cgroup/fuzzing
+cgdomain="/sys/fs/cgroup/fuzzing"
 
 if [[ $# -eq 2 ]]; then
   if ! CreateCgroup $1 $2; then

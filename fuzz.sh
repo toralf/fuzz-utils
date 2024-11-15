@@ -8,7 +8,7 @@ function checkForFindings() {
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
       b=$(basename $d)
-      tar_archive=~/findings/$b.tar.gz # GH issue tracker does not allow *.xz attachments
+      tar_archive=~/findings/$b.tar.gz # GH issue tracker does not accept *.xz files
       options=""
       if [[ -s $tar_archive ]]; then
         options="-newer $tar_archive"
@@ -48,37 +48,39 @@ function checkForFindings() {
 
 function checkForAborts() {
   ls $fuzzdir/*/fuzz.log 2>/dev/null |
-    while read -r i; do
-      if tail -v -n 7 $i | colourStrip | grep -F -B 7 -A 7 -e 'PROGRAM ABORT' -e 'Testing aborted' -e '+++ Baking aborted programmatically +++'; then
-        d=$(dirname $i)
-        echo " $d finished"
-        if grep -F 'Statistics:' $d/fuzz.log | grep -v ', 0 crashes saved'; then
-          echo -e "\n $d contains CRASHes !!!\n"
+    while read -r log; do
+      if tail -v -n 7 $log | colourStrip | grep -B 7 -A 7 -e 'PROGRAM ABORT' -e '.* aborted'; then
+        d=$(dirname $log)
+        echo " $d aborted"
+        if grep -F 'Statistics:' $log | grep -v ', 0 crashes saved'; then
+          echo -e "\n $d contains CRASH(s) !!!\n"
         fi
         if [[ ! -d $fuzzdir/aborted ]]; then
           mkdir -p $fuzzdir/aborted
         fi
         if sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
+          gzip $log
           mv $d $fuzzdir/aborted
         fi
       fi
     done
 
-  ls $fuzzdir/*/default/fuzzer_stats 2>/dev/null |
-    while read -r i; do
-      pid=$(awk '/^fuzzer_pid/ { print $3 }' $i)
-      if [[ -z $pid ]] || ! kill -0 $pid 2>/dev/null; then
-        d=$(dirname $(dirname $i))
+  ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
+    while read -r d; do
+      pid=$(awk '/^fuzzer_pid/ { print $3 }' $d/default/fuzzer_stats 2>/dev/null)
+      if [[ ! -s $d/fuzz.log || -z $pid ]] || ! grep -q $pid $cgdomain/$(basename $d)/cgroup.procs; then
         echo -e "\n $d is DEAD (pid=$pid)\n"
         if [[ ! -d $fuzzdir/died ]]; then
           mkdir -p $fuzzdir/died
         fi
         if ! sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
-          echo -e " killing pids ..."
-          tac $cgdomain/$(basename $d)/cgroup.procs | xargs -n 1 -r kill -9
+          echo -en " killing pids: "
+          tac $cgdomain/$(basename $d)/cgroup.procs | tee | xargs -n 1 -r kill -9
+          sleep 2
+          sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
         fi
+        gzip $d/fuzz.log
         mv $d $fuzzdir/died
-        sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
       fi
     done
 }

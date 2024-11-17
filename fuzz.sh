@@ -49,7 +49,7 @@ function checkForFindings() {
 function checkForAborts() {
   ls $fuzzdir/*/fuzz.log 2>/dev/null |
     while read -r log; do
-      if tail -v -n 7 $log | colourStrip | grep -B 7 -A 7 -e 'PROGRAM ABORT' -e '.* aborted'; then
+      if tail -v -n 7 $log | colourStrip | grep -B 7 -A 7 -e 'PROGRAM ABORT' -e '.* aborted' -e 'Have a nice day'; then
         d=$(dirname $log)
         echo " $d aborted"
         if grep -F 'Statistics:' $log | grep -v ', 0 crashes saved'; then

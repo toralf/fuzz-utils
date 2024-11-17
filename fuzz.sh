@@ -297,9 +297,8 @@ export PERFORMANCE=1
 export AFL_NO_SYNC=1
 
 # log file readability
-export AFL_NO_COLOUR=1
+export AFL_NO_COLOR=1
 export ALWAYS_COLORED=0
-export USE_COLOR=0
 
 fuzzdir="/tmp/torproject/fuzzing"
 cgdomain="/sys/fs/cgroup/fuzzing"

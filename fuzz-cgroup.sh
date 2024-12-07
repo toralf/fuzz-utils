@@ -6,8 +6,6 @@ function CreateCgroup() {
   local name=$cgdomain/${1?}
   local pid=${2?}
 
-  # stdout of the fuzzer can become huge, e.g. for OpenSSL cmp fuzzer, and goes to a tmpfs
-
   # put all fuzzers under 1 sub group
   if [[ ! -d $cgdomain ]]; then
     if mkdir $cgdomain 2>/dev/null; then
@@ -17,6 +15,7 @@ function CreateCgroup() {
       echo "$((4 * 100))" >$cgdomain/cpu.weight
       echo "$((4 * 100000))" >$cgdomain/cpu.max
       echo "2G" >$cgdomain/memory.max
+      echo "20G" >$cgdomain/memory.swap.max # stdout of the fuzzer is counted b/c it goes to a tmpfs
     fi
   fi
 

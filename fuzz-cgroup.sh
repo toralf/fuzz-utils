@@ -51,15 +51,21 @@ export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 export LANG=C.utf8
 
 if [[ "$(whoami)" != "root" ]]; then
-  echo " you must be root "
+  echo " you must be root " >&2
   exit 1
 fi
 
 cgdomain="/sys/fs/cgroup/fuzzing"
 
 if [[ $# -eq 2 ]]; then
-  if ! CreateCgroup $1 $2; then
-    RemoveCgroup $1
+  pid_user=$(ps -o user= -p $2)
+  if [[ $pid_user == "torproject" ]]; then
+    if ! CreateCgroup $1 $2; then
+      RemoveCgroup $1
+      exit 1
+    fi
+  else
+    echo " pid $2 belongs to $pid_user" >&2
     exit 1
   fi
 elif [[ $# -eq 1 ]]; then

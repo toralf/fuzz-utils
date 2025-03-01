@@ -8,7 +8,7 @@ function checkForFindings() {
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
       b=$(basename $d)
-      tar_archive=~/findings/$b.tar.gz # GH issue tracker does not accept *.xz files
+      tar_archive=~/findings/$b.tar.gz # GitHub issue tracker does not accept xz compressed files
       options=""
       if [[ -s $tar_archive ]]; then
         options="-newer $tar_archive"
@@ -28,7 +28,7 @@ function checkForFindings() {
 
         echo -e "\n reproducer:\n\n cd ~/findings/$b\n for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do time ./*-test \$i; echo; done\n\n"
 
-        # handle races
+        # retry to handle races
         n=5
         while ((n--)); do
           if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/; then
@@ -49,7 +49,7 @@ function checkForFindings() {
 function checkForAborts() {
   ls $fuzzdir/*/fuzz.log 2>/dev/null |
     while read -r log; do
-      if tail -v -n 7 $log | colourStrip | grep -B 7 -A 7 -e 'PROGRAM ABORT' -e '.* aborted' -e 'Have a nice day'; then
+      if tail -v -n 7 $log | colourStrip | grep -B 17 -A 7 -e 'PROGRAM ABORT' -e '.* aborted' -e 'Have a nice day'; then
         d=$(dirname $log)
         echo " $d aborted"
         if grep -F 'Statistics:' $log | grep -v ', 0 crashes saved'; then
@@ -176,7 +176,7 @@ function startAFuzzer() {
   export AFL_TMPDIR=$output_dir
   nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
-  echo -e "\n    started: $fuzzer (pid=$pid)\n"
+  echo -e "\n$(date)\n    started: $fuzzer (pid=$pid)\n"
   sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid # create it
 }
 
@@ -223,11 +223,11 @@ function runFuzzers() {
   fi
 
   if [[ $delta -gt 0 ]]; then
-    echo -en "\n job changes: $delta x $software: "
+    echo -en "\n$(date)\n job changes: $delta x $software: "
 
     if [[ $force_build -eq 1 ]] || softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
-      cd ~/sources/$software || return 1
-      echo -e "\n building $software ...\n"
+      cd ~/sources/$software
+      echo -e "\n$(date)\n building $software ...\n"
       buildSoftware
     fi
 
@@ -241,7 +241,7 @@ function runFuzzers() {
       fi |
       while read -r line; do
         if ! startAFuzzer $line; then
-          echo -e "\n cannot start $line\n" >&2
+          echo -e "\n$(date)\n cannot start $line\n" >&2
           return 1
         fi
       done
@@ -249,7 +249,7 @@ function runFuzzers() {
 
   elif [[ $delta -lt 0 ]]; then
     ((delta = -delta))
-    echo -e "\n stopping $delta x $software: "
+    echo -e "\n$(date)\n stopping $delta x $software: "
     ls -dt $cgdomain/${software}_* 2>/dev/null |
       tail -n $delta |
       while read -r d; do

@@ -3,8 +3,6 @@
 # specific routines to fuzz Tor
 
 function buildSoftware() {
-  local jobs=${1:-1}
-
   make clean
 
   if [[ ! -x ./configure ]]; then
@@ -20,7 +18,7 @@ function buildSoftware() {
     ./configure $gentoo --enable-module-dirauth
   fi
   make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
-  nice -n 3 make -j $jobs fuzzers
+  nice -n 3 make -j 1 fuzzers
 }
 
 function getFuzzers() {
@@ -42,29 +40,33 @@ function getFuzzers() {
 }
 
 function softwareWasCloned() {
-  if ! cd ~/sources; then
-    return 1
-  fi
+  cd ~/sources/ || exit 1
 
   if [[ -d ./fuzzing-corpora && -d ./$software ]]; then
     return 1
   fi
 
-  if [[ ! -d ./fuzzing-corpora ]]; then
-    git clone https://gitlab.torproject.org/tpo/core/fuzzing-corpora.git/
-  fi
   if [[ ! -d ./$software ]]; then
-    git clone https://gitlab.torproject.org/tpo/core/$software.git/
+    if ! git clone https://gitlab.torproject.org/tpo/core/$software.git/; then
+      exit 1
+    fi
+  fi
+  if [[ ! -d ./fuzzing-corpora ]]; then
+    if ! git clone https://gitlab.torproject.org/tpo/core/fuzzing-corpora.git/; then
+      exit 1
+    fi
   fi
 }
 
 function softwareWasUpdated() {
-  # in "if [[ A || B ]]" bash optimizes B away if A is false
-  # - but we have to call repoWasUpdated() in both directories
+  local rc=2
+
   if repoWasUpdated ~/sources/$software; then
-    repoWasUpdated ~/sources/fuzzing-corpora || true
-    return 0
-  else
-    return 1
+    rc=0
   fi
+  if repoWasUpdated ~/sources/fuzzing-corpora; then
+    rc=0
+  fi
+
+  return $rc
 }

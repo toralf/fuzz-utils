@@ -3,8 +3,6 @@
 # specific routines to fuzz OpenSSL
 
 function buildSoftware() {
-  local jobs=${1:-1}
-
   # fuzz/README.md
   CC=afl-clang-fast ./config enable-fuzz-afl no-shared no-module \
     -DPEDANTIC enable-tls1_3 enable-weak-ssl-ciphers enable-rc5 \
@@ -12,7 +10,7 @@ function buildSoftware() {
     enable-ec_nistp_64_gcc_128 -fno-sanitize=alignment \
     --debug
   make clean
-  nice -n 3 make -j $jobs
+  nice -n 3 make -j 1
 }
 
 function getFuzzers() {
@@ -30,28 +28,28 @@ function getFuzzers() {
 }
 
 function softwareWasCloned() {
-  if ! cd ~/sources/; then
-    return 1
-  fi
+  cd ~/sources/ || exit 1
 
   if [[ -d ./$software && -s ./$software/fuzz/corpora/.git ]]; then
     return 1
   fi
 
-  git clone https://github.com/openssl/$software.git
+  if ! git clone https://github.com/openssl/$software.git; then
+    exit 1
+  fi
   cd ./$software
-  git submodule update --init --recursive fuzz/corpora
+  if ! git submodule update --init --recursive fuzz/corpora; then
+    exit 1
+  fi
 }
 
 function softwareWasUpdated() {
-  if ! cd ~/sources/$software; then
-    return 1
-  fi
-
   local rc=2
+
   if repoWasUpdated ~/sources/$software; then
     rc=0
   fi
+  cd ~/sources/$software
   if git submodule update --remote --recursive fuzz/corpora | grep -q '.'; then
     rc=0
   fi

@@ -89,7 +89,7 @@ function cleanUp() {
   local rc=${1:-$?}
   trap - INT QUIT TERM EXIT
 
-  rm -f "$lck"
+  rm -- $lck
   exit $rc
 }
 
@@ -111,10 +111,10 @@ function lock() {
       return 1 # valid
     else
       echo -n " ignored stalled lock file $lck: "
-      cat $lck
+      ls -l $lck
     fi
   fi
-  echo "$(date) $$" >$lck || exit 1
+  echo "$$" >$lck || exit 1
 }
 
 function plotData() {

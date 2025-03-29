@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 # specific routines to fuzz OpenSSL
 
 function buildSoftware() {
@@ -9,6 +10,7 @@ function buildSoftware() {
     enable-md2 enable-ssl3 enable-ssl3-method enable-nextprotoneg \
     enable-ec_nistp_64_gcc_128 -fno-sanitize=alignment \
     --debug
+
   make clean
   nice -n 3 make -j 1
 }

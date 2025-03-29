@@ -38,19 +38,31 @@ function getFuzzers() {
 function softwareWasCloned() {
   cd ~/sources/ || exit 1
 
-  if [[ -d ./$software ]]; then
+  if [[ -d ./fuzzing-corpora && -d ./$software ]]; then
     return 1
   fi
 
-  if ! git clone https://gitlab.torproject.org/tpo/core/$software.git; then
-    exit 1
+  if [[ ! -d ./$software ]]; then
+    if ! git clone https://gitlab.torproject.org/tpo/core/$software.git/; then
+      exit 1
+    fi
+  fi
+  if [[ ! -d ./fuzzing-corpora ]]; then
+    if ! git clone https://gitlab.torproject.org/tpo/core/fuzzing-corpora.git/; then
+      exit 1
+    fi
   fi
 }
 
 function softwareWasUpdated() {
+  local rc=2
+
   if repoWasUpdated ~/sources/$software; then
-    return 0
+    rc=0
+  fi
+  if repoWasUpdated ~/sources/fuzzing-corpora; then
+    rc=0
   fi
 
-  return 2
+  return $rc
 }

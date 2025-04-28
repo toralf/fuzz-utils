@@ -24,7 +24,7 @@ function getFuzzers() {
       idir=~/sources/$software/fuzz/corpora/$fuzzer
 
       if [[ -x $exe && -d $idir ]]; then
-        echo $fuzzer $exe $idir -t 5 # https://github.com/openssl/openssl/issues/25707
+        echo $fuzzer $exe $idir -t 7 # https://github.com/openssl/openssl/issues/25707
       fi
     done
 }

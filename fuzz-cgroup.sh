@@ -28,7 +28,7 @@ function CreateCgroup() {
   # 1 vCPU per fuzzer
   echo "$((1 * 100))" >$name/cpu.weight
   echo "$((1 * 100000))" >$name/cpu.max
-  echo "256M" >$name/memory.max
+  echo "512M" >$name/memory.max
 }
 
 function RemoveCgroup() {

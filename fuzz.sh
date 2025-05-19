@@ -265,6 +265,11 @@ set -eu
 export LANG=C.utf8
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 
+if [[ "$(whoami)" != "torproject" ]]; then
+  echo " you must be torproject" >&2
+  exit 1
+fi
+
 if [[ $# -eq 0 ]]; then
   echo ' a parameter is required' >&2
   exit 1

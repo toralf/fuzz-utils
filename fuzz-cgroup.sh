@@ -11,9 +11,9 @@ function CreateCgroup() {
     if mkdir $cgdomain 2>/dev/null; then
       echo "+cpu +cpuset +memory" >$cgdomain/cgroup.subtree_control
 
-      # 4 vCPU for all fuzzers
-      echo "$((4 * 100))" >$cgdomain/cpu.weight
-      echo "$((4 * 100000))" >$cgdomain/cpu.max
+      # 2 vCPU for all fuzzers
+      echo "$((2 * 100))" >$cgdomain/cpu.weight
+      echo "$((2 * 100000))" >$cgdomain/cpu.max
       echo "2G" >$cgdomain/memory.max
       echo "20G" >$cgdomain/memory.swap.max # stdout of the fuzzer is counted b/c it goes to a tmpfs
     fi
@@ -28,7 +28,7 @@ function CreateCgroup() {
   # 1 vCPU per fuzzer
   echo "$((1 * 100))" >$name/cpu.weight
   echo "$((1 * 100000))" >$name/cpu.max
-  echo "512M" >$name/memory.max
+  echo "1G" >$name/memory.max
 }
 
 function RemoveCgroup() {

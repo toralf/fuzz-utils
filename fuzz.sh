@@ -176,33 +176,34 @@ function startAFuzzer() {
   export AFL_TMPDIR=$output_dir
   nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
-  echo -e "\n$(date)\n    started: $fuzzer (pid=$pid)\n"
+  echo -e "\n$(date)\n    started: $software $fuzzer (pid=$pid)\n"
   sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid # create it
 }
 
 function stopAFuzzer() {
-  local fuzzer=${1?}
+  local fuzzer=${1?FUZZER IS MISSING}
+  local cgroupdir=${2?CGROUP DIR IS MISSING}
 
   local statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
   # stat file is not immediately filled after fuzzer start
   if [[ -s $statfile ]]; then
     local pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
-    echo -n "    got pid from fuzzer_stats of $fuzzer: $pid "
+    echo -n "    got pid from fuzzer_stats of $software $fuzzer: $pid "
     kill -15 $pid
     echo
   else
-    local pids=$(cat $d/cgroup.procs)
+    local pids=$(cat $cgroupdir/cgroup.procs)
     if [[ -n $pids ]]; then
-      echo "   kill cgroup tasks of $fuzzer: $pids"
+      echo "   kill cgroup tasks of $software $fuzzer: $pids"
       xargs -n 1 kill -15 <<<$pids
       sleep 10
-      pids=$(cat $d/cgroup.procs)
+      pids=$(cat $cgroupdir/cgroup.procs)
       if [[ -n $pids ]]; then
         echo "   get roughly with $pids"
-        xargs -n 1 kill -9 < <(cat $d/cgroup.procs)
+        xargs -n 1 kill -9 < <(cat $cgroupdir/cgroup.procs)
       fi
     else
-      echo -n "   got no pid for $d"
+      echo -n "   got no pid for $cgroupdir"
     fi
   fi
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer; then
@@ -254,7 +255,7 @@ function runFuzzers() {
       tail -n $delta |
       while read -r d; do
         fuzzer=$(basename $d)
-        stopAFuzzer $fuzzer
+        stopAFuzzer $fuzzer $d
       done
   fi
 }

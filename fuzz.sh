@@ -162,7 +162,8 @@ function startAFuzzer() {
 
   cd ~/sources/$software
 
-  local fuzz_dirname=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
+  local fuzz_dirname
+  fuzz_dirname=${software}_${fuzzer}_$(date +%Y%m%d-%H%M%S)_$(getCommitId)
   local output_dir=$fuzzdir/$fuzz_dirname
   mkdir -p $output_dir
 
@@ -187,12 +188,14 @@ function stopAFuzzer() {
   local statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
   # stat file is not immediately filled after fuzzer start
   if [[ -s $statfile ]]; then
-    local pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
+    local pid
+    pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
     echo -n "    got pid from fuzzer_stats of $software $fuzzer: $pid "
     kill -15 $pid
     echo
   else
-    local pids=$(cat $cgroupdir/cgroup.procs)
+    local pids
+    pids=$(cat $cgroupdir/cgroup.procs)
     if [[ -n $pids ]]; then
       echo "   kill cgroup tasks of $software $fuzzer: $pids"
       xargs -n 1 kill -15 <<<$pids
@@ -214,9 +217,10 @@ function stopAFuzzer() {
 
 function runFuzzers() {
   local wanted=${1?}
-  local running=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
-  local delta
 
+  local running
+  running=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
+  local delta
   if [[ $wanted =~ ^[0-9]+$ ]]; then
     delta=$((wanted - running))
   else

@@ -15,7 +15,7 @@ function checkForFindings() {
       fi
 
       tmpfile=$(mktemp /tmp/$(basename $0)_XXXXXX)
-      find $d -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" $options >$tmpfile
+      find $d $options -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" >$tmpfile
       if [[ -s $tmpfile ]]; then
         if grep -q 'crashes' $tmpfile; then
           echo -e "\n new CRASH(s) found for $b\n"

@@ -26,8 +26,24 @@ function checkForFindings() {
           exit 1
         fi
 
-        echo -e "\n reproducer:\n\n cd ~/findings/$b\n for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do time ./*-test \$i; echo; done\n\n"
+        cat - <<EOF
 
+  reproducer:
+
+  cd ~/findings/$b
+  for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do
+    time ./*-test \$i
+    echo
+  done
+
+  or GDB:
+
+  for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do
+    gdb -q -batch -ex 'set logging enabled off' -ex 'set pagination off' -ex 'run' -ex 'thread apply all bt' --args ./*-test \$i
+    echo
+  done
+
+EOF
         # retry to handle races
         n=5
         while ((n--)); do

@@ -135,7 +135,9 @@ function lock() {
 
 function plotData() {
   for d in $(ls -d $fuzzdir/*/default/ 2>/dev/null); do
-    afl-plot $d $(dirname $d) &>/dev/null
+    if ! afl-plot $d $(dirname $d) &>/dev/null; then
+      :
+    fi
   done
 }
 

@@ -83,8 +83,14 @@ function checkForAborts() {
 
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
-      pid=$(awk '/^fuzzer_pid/ { print $3 }' $d/default/fuzzer_stats 2>/dev/null)
-      if [[ ! -s $d/fuzz.log || -z $pid ]] || ! grep -q $pid $cgdomain/$(basename $d)/cgroup.procs; then
+      if [[ -s $d/default/fuzzer_stats ]]; then
+        if ! pid=$(awk '/^fuzzer_pid/ { print $3 }' $d/default/fuzzer_stats); then
+          pid="0"
+        fi
+      else
+        pid="0"
+      fi
+      if [[ $pid == "0" || ! -s $d/fuzz.log ]] || ! grep -q -w $pid $cgdomain/$(basename $d)/cgroup.procs; then
         echo -e "\n $d is DEAD (pid=$pid)\n"
         if [[ ! -d $fuzzdir/died ]]; then
           mkdir -p $fuzzdir/died
@@ -193,7 +199,7 @@ function startAFuzzer() {
 
   cd $output_dir
   export AFL_TMPDIR=$output_dir
-  nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $0 -- ./$(basename $exe) &>./fuzz.log &
+  nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $(dirname 0)/crash-found.sh -- ./$(basename $exe) &>./fuzz.log &
   local pid=$!
   echo -e "\n$(date)\n    started: $software $fuzzer (pid=$pid)\n"
   sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid # create it

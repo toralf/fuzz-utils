@@ -39,7 +39,7 @@ function checkForFindings() {
   or GDB:
 
   for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do
-    gdb -q -batch -ex 'set logging enabled off' -ex 'set pagination off' -ex 'run' -ex 'thread apply all bt' --args ./*-test \$i
+    gdb -q -batch -ex 'set logging enabled off' -ex 'set pagination off' -ex 'thread apply all bt' -ex 'run' --args ./*-test \$i
     echo
   done
 

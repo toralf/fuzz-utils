@@ -39,7 +39,7 @@ function RemoveCgroup() {
     if grep -q 'populated 0' $name/cgroup.events 2>/dev/null; then
       rmdir $name
     else
-      echo " cannot remove cgroup $name, procs: $(cat $name/cgroup.procs | xargs)"
+      echo " cannot remove cgroup $name, procs: $(xargs <$name/cgroup.procs)"
       return 1
     fi
   fi

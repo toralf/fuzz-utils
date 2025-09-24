@@ -129,7 +129,7 @@ function getCommitId() {
 
 function lock() {
   if [[ -s $lck ]]; then
-    if kill -0 $(cat $lck) 2>/dev/null; then
+    if kill -0 $(<$lck) 2>/dev/null; then
       return 1 # valid
     else
       echo -n " ignored stalled lock file $lck: "
@@ -219,12 +219,12 @@ function stopAFuzzer() {
     echo
   else
     local pids
-    pids=$(cat $cgroupdir/cgroup.procs)
+    pids=$(<$cgroupdir/cgroup.procs)
     if [[ -n $pids ]]; then
       echo "   kill cgroup tasks of $software $fuzzer: $pids"
       xargs -n 1 kill -15 <<<$pids
       sleep 10
-      pids=$(cat $cgroupdir/cgroup.procs)
+      pids=$(<$cgroupdir/cgroup.procs)
       if [[ -n $pids ]]; then
         echo "   get roughly with $pids"
         xargs -n 1 kill -9 < <(cat $cgroupdir/cgroup.procs)

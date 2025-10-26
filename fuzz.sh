@@ -149,12 +149,19 @@ function plotData() {
 
 function repoWasUpdated() {
   cd $1 || exit 1
+  if ! git clean -f 1>/dev/null; then
+    exit 2
+  fi
+
   local old
   old=$(getCommitId)
-  git pull 1>/dev/null
-  local new
-  new=$(getCommitId)
-  [[ $old != "$new" ]]
+  if git pull 1>/dev/null; then
+    local new
+    new=$(getCommitId)
+    [[ $old != "$new" ]]
+  else
+    return 1
+  fi
 }
 
 function getFuzzerCandidates() {

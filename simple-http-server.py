@@ -7,20 +7,18 @@ import logging
 import os
 import re
 import socket
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 
-class HTTPServerV6(HTTPServer):
+class MyServer6(ThreadingHTTPServer):
     address_family = socket.AF_INET6
 
 
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         try:
-            address = self.address_string()
-            if not address.startswith("47.128."):
-                logging.debug(self.requestline)
-                return SimpleHTTPRequestHandler.do_GET(self)
+            logging.debug(self.requestline)
+            return SimpleHTTPRequestHandler.do_GET(self)
         except BrokenPipeError:
             logging.info("pipe broken")
         except Exception as e:
@@ -51,9 +49,9 @@ def main():
 
     if args.is_ipv6 or re.match(":", args.address):
         address = str(args.address).replace("[", "").replace("]", "")
-        server = HTTPServerV6((address, args.port), MyHandler)
+        server = MyServer6((address, args.port), MyHandler)
     else:
-        server = HTTPServer((args.address, args.port), MyHandler)
+        server = ThreadingHTTPServer((args.address, args.port), MyHandler)
 
     logging.info("running at %s at %i in %s", args.address, args.port, args.directory)
     try:

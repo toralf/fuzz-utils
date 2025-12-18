@@ -12,7 +12,7 @@ function buildSoftware() {
     --debug
 
   make clean
-  nice -n 3 make -j 1
+  MAKEFLAGS="--jobserver-auth=fifo:/dev/steve" nice -n 3 make
 }
 
 function getFuzzers() {

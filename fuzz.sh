@@ -264,7 +264,7 @@ function runFuzzers() {
     if [[ $force_build -eq 1 ]] || softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
       cd ~/sources/$software
       echo -e "\n$(date)\n building $software ...\n"
-      buildSoftware
+      USE_COLOR=0 ALWAYS_COLORED=0 AFL_NO_COLOR=1 buildSoftware
     fi
 
     local tmpdir
@@ -336,10 +336,6 @@ export AFL_SHUFFLE_QUEUE=1
 export AFL_MAP_SIZE=70144
 export PERFORMANCE=1
 export AFL_NO_SYNC=1
-
-# log file readability
-export AFL_NO_COLOR=1
-export ALWAYS_COLORED=0
 
 fuzzdir="/tmp/torproject/fuzzing"
 cgdomain="/sys/fs/cgroup/fuzzing"

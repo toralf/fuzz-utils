@@ -4,11 +4,10 @@
 # specific routines to fuzz OpenSSL
 
 function buildSoftware() {
-  # fuzz/README.md
-  CC=afl-clang-fast ./config enable-fuzz-afl no-shared no-module \
-    -DPEDANTIC enable-tls1_3 enable-weak-ssl-ciphers enable-rc5 \
-    enable-md2 enable-ssl3 enable-ssl3-method enable-nextprotoneg \
-    enable-ec_nistp_64_gcc_128 -fno-sanitize=alignment \
+  # fuzz/README.md, take configs from Gentoo
+  CC=afl-clang-fast ./config \
+    enable-camellia enable-ec enable-ec2m enable-sm2 enable-srp enable-idea enable-mdc2 enable-rc5 \
+    enable-quic enable-asm no-ktls no-rfc3779 no-sctp no-zlib no-weak-ssl-ciphers \
     --debug
 
   make clean

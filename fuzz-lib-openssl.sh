@@ -11,7 +11,7 @@ function buildSoftware() {
     --debug
 
   make clean
-  MAKEFLAGS="--jobserver-auth=fifo:/dev/steve" nice -n 3 make
+  nice -n 3 make
 }
 
 function getFuzzers() {

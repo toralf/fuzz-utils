@@ -8,9 +8,11 @@ function buildSoftware() {
   ./autogen.sh
 
   ./configure \
-    --disable-libfuzzer --enable-unittests --enable-gcc-hardening --enable-linker-hardening \
-    --enable-module-relay --disable-systemd \
-    --enable-pic --enable-libscrypt --enable-seccomp --enable-lzma --enable-zstd --disable-html-manual
+    --disable-dependency-tracking --disable-silent-rules --disable-all-bugs-are-fatal --enable-system-torrc \
+    --disable-android --disable-coverage --disable-html-manual --disable-libfuzzer --enable-missing-doc-warnings \
+    --disable-module-dirauth --enable-pic --disable-restart-debugging --enable-gpl --enable-module-pow \
+    --enable-gcc-hardening --enable-linker-hardening --enable-asciidoc --enable-manpage --enable-lzma \
+    --enable-libscrypt --enable-seccomp --enable-module-relay --disable-systemd --disable-unittests --disable-zstd
 
   make clean
   make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520

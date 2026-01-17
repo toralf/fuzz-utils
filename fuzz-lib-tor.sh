@@ -11,12 +11,12 @@ function buildSoftware() {
     --prefix=/usr \
     --mandir=/usr/share/man --infodir=/usr/share/info --datadir=/usr/share --sysconfdir=/etc \
     --localstatedir=/var --datarootdir=/usr/share \
-    --disable-dependency-tracking --disable-silent-rules --disable-all-bugs-are-fatal --enable-system-torrc \
+    --disable-dependency-tracing --disable-silent-rules --disable-all-bugs-are-fatal --enable-system-torrc \
     --disable-android --disable-coverage --disable-html-manual --disable-libfuzzer --enable-missing-doc-warnings \
     --disable-module-dirauth --enable-pic --disable-restart-debugging --enable-gpl --enable-module-pow \
     --enable-gcc-hardening --enable-linker-hardening \
-    --enable-libscrypt --enable-seccomp --enable-module-relay --disable-unittests --disable-zstd  \
-    --disable-asciidoc --disable-manpage --disable-lzma
+    --enable-libscrypt --enable-seccomp --enable-module-relay --disable-zstd \
+    --enable-unittests --disable-asciidoc --disable-manpage --disable-lzma
 
   make clean
   make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520

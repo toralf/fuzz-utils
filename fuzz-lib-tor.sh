@@ -15,7 +15,7 @@ function buildSoftware() {
     --disable-android --disable-coverage --disable-html-manual --disable-libfuzzer --enable-missing-doc-warnings \
     --disable-module-dirauth --enable-pic --disable-restart-debugging --enable-gpl --enable-module-pow \
     --enable-gcc-hardening --enable-linker-hardening \
-    --enable-libscrypt --enable-seccomp --enable-module-relay --disable-zstd \
+    --enable-libscrypt --enable-seccomp --enable-module-relay --enable-zstd \
     --enable-unittests --disable-asciidoc --disable-manpage --disable-lzma
 
   make clean

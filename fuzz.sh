@@ -249,11 +249,11 @@ function stopAFuzzer() {
 function runFuzzers() {
   local wanted=${1?}
 
-  local running
-  running=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
+  local current
+  current=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
   local delta
   if [[ $wanted =~ ^[0-9]+$ ]]; then
-    delta=$((wanted - running))
+    delta=$((wanted - current))
   else
     delta=1
   fi

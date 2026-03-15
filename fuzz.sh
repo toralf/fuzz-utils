@@ -65,25 +65,14 @@ EOF
 function checkForAborts() {
   ls $fuzzdir/*/fuzz.log 2>/dev/null |
     while read -r log; do
-      if tail -v -n 7 $log | colourStrip | grep -B 17 -A 7 -e 'PROGRAM ABORT' -e '.* aborted' -e 'Have a nice day'; then
+      if tail -n 17 $log | grep -q -e 'PROGRAM ABORT' -e '.* aborted' -e 'Have a nice day'; then
         d=$(dirname $log)
-        echo " $d aborted"
-        if grep -F 'Statistics:' $log | grep -v ', 0 crashes saved'; then
-          echo -e "\n $d contains CRASH(s) !!!\n"
-
-          if [[ ! -d $fuzzdir/crashed ]]; then
-            mkdir -p $fuzzdir/crashed
-          fi
-          if sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
-            gzip $log
-            mv $d $fuzzdir/crashed
-          fi
-        else
-          rm -r $d
-        fi
+        rm -r -- $d
       fi
     done
+}
 
+function checkForDied() {
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
       died=''
@@ -108,7 +97,7 @@ function checkForAborts() {
           mkdir -p $fuzzdir/died
         fi
         if ! sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
-          echo -en " cgroup removal $cgdomain failed, killing pids: "
+          echo -en " cgroup removal $cgdomain failed, will kill pids: "
           tac $cgdomain/$(basename $d)/cgroup.procs | tee | xargs -n 1 -r kill -9
           sleep 2
           if ! sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
@@ -128,14 +117,6 @@ function cleanUp() {
 
   rm -- $lck
   exit $rc
-}
-
-function colourStrip() {
-  if [[ -x /usr/bin/ansifilter ]]; then
-    ansifilter
-  else
-    cat
-  fi
 }
 
 function getCommitId() {
@@ -267,7 +248,7 @@ function stopAFuzzer() {
       echo "   no pid in statfile: $statfile" >&2
     fi
   else
-    echo "   no statfile found: $statfile" >&2
+    echo "   no statfile found: $statfile"
     local pids
 
     pids=$(<$cgroupdir/cgroup.procs)
@@ -287,7 +268,7 @@ function stopAFuzzer() {
   fi
 
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer; then
-    echo -e "\n woops ^^"
+    echo -e "\n woops $fuzzer" >&2
   fi
   echo
 }
@@ -303,7 +284,7 @@ function runFuzzers() {
   if [[ $delta -gt 0 ]]; then
     echo -en "\n$(date)\n job changes: $delta x $software: "
 
-    if [[ $force_build -eq 1 ]] || softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
+    if softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
       cd ~/sources/$software
       echo -e "\n$(date)\n building $software ...\n"
       AFL_NO_COLOR=1 buildSoftware
@@ -382,12 +363,12 @@ export AFL_NO_SYNC=1
 fuzzdir="/tmp/torproject/fuzzing"
 cgdomain="/sys/fs/cgroup/fuzzing"
 
-force_build=0
-
-while getopts abfo:pt: opt; do
+while getopts afo:pt: opt; do
   case $opt in
-  a) checkForAborts ;;
-  b) force_build=1 ;;
+  a)
+    checkForAborts
+    checkForDied
+    ;;
   f) checkForFindings ;;
   o)
     software="openssl"

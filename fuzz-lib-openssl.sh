@@ -4,14 +4,21 @@
 # specific routines to fuzz OpenSSL
 
 function buildSoftware() {
-  # fuzz/README.md, take configs from Gentoo
-  CC=afl-clang-fast ./config \
-    enable-camellia enable-ec enable-ec2m enable-sm2 enable-srp enable-idea enable-mdc2 enable-rc5 \
-    enable-quic enable-asm no-ktls no-rfc3779 no-sctp no-zlib no-weak-ssl-ciphers \
-    --debug
+  # https://github.com/openssl/openssl/blob/master/fuzz/README.md
+  ./config enable-fuzz-afl no-shared no-module \
+    -DPEDANTIC enable-tls1_3 enable-weak-ssl-ciphers enable-rc5 \
+    enable-md2 enable-nextprotoneg enable-ec_nistp_64_gcc_128 \
+    -fno-sanitize=alignment --debug
 
   make clean
-  nice -n 3 make
+  ls -d fuzz/corpora/* |
+    while read -r fc; do
+      f=./fuzz/$(basename $fc)
+      if [[ -x $f ]]; then
+        rm -f $f{,-test}
+      fi
+    done
+  nice -n 3 make $MAKEFLAGS
 }
 
 function getFuzzers() {
@@ -23,7 +30,8 @@ function getFuzzers() {
       idir=~/sources/$software/fuzz/corpora/$fuzzer
 
       if [[ -x $exe && -d $idir ]]; then
-        echo $fuzzer $exe $idir -t 7 # https://github.com/openssl/openssl/issues/25707
+        # for timeouts see https://github.com/openssl/openssl/issues/25707
+        echo $fuzzer $exe $idir -t 100
       fi
     done
 }
@@ -38,6 +46,7 @@ function softwareWasCloned() {
   if ! git clone https://github.com/openssl/$software.git; then
     exit 1
   fi
+
   cd ./$software
   if ! git submodule update --init --recursive fuzz/corpora; then
     exit 1
@@ -50,6 +59,7 @@ function softwareWasUpdated() {
   if repoWasUpdated ~/sources/$software; then
     rc=0
   fi
+
   cd ~/sources/$software
   if git submodule update --remote --recursive fuzz/corpora | grep -q '.'; then
     rc=0

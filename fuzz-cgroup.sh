@@ -14,8 +14,8 @@ function CreateCgroup() {
       # 2 vCPU for all fuzzers
       echo "$((2 * 100))" >$cgdomain/cpu.weight
       echo "$((2 * 100000))" >$cgdomain/cpu.max
-      echo "2G" >$cgdomain/memory.max
-      echo "20G" >$cgdomain/memory.swap.max # stdout of the fuzzer is counted b/c it goes to a tmpfs
+      echo "20G" >$cgdomain/memory.max
+      echo "200G" >$cgdomain/memory.swap.max # stdout of the fuzzer is counted b/c it goes to a tmpfs
     fi
   fi
 
@@ -28,7 +28,7 @@ function CreateCgroup() {
   # 1 vCPU per fuzzer
   echo "$((1 * 100))" >$name/cpu.weight
   echo "$((1 * 100000))" >$name/cpu.max
-  echo "1G" >$name/memory.max
+  echo "10G" >$name/memory.max
 }
 
 function RemoveCgroup() {

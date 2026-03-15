@@ -83,23 +83,37 @@ function checkForAborts() {
 
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
-      if [[ -s $d/default/fuzzer_stats ]]; then
-        if ! pid=$(awk '/^fuzzer_pid/ { print $3 }' $d/default/fuzzer_stats); then
-          pid="0"
+      died=''
+
+      if [[ ! -s $d/fuzz.log ]]; then
+        died='no log'
+
+      elif [[ -s $d/default/fuzzer_stats ]]; then
+        pid=$(awk '/^fuzzer_pid/ { print $3 }' $d/default/fuzzer_stats)
+        if [[ -n $pid ]]; then
+          if ! grep -q -w $pid $cgdomain/$(basename $d)/cgroup.procs; then
+            died='no cgroup'
+          elif ! kill -0 $pid 1>/dev/null; then
+            died="pid $pid not running"
+          fi
+        else
+          died='no pid in stats'
         fi
-      else
-        pid="0"
       fi
-      if [[ $pid == "0" || ! -s $d/fuzz.log ]] || ! grep -q -w $pid $cgdomain/$(basename $d)/cgroup.procs; then
-        echo -e "\n $d is DEAD (pid=$pid)\n"
+
+      if [[ -n $died ]]; then
+        echo -e "\n $d is DEAD ($died, pid=$pid)\n"
         if [[ ! -d $fuzzdir/died ]]; then
           mkdir -p $fuzzdir/died
         fi
         if ! sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
-          echo -en " killing pids: "
+          echo -en " cgroup removal $cgdomain failed, killing pids: "
           tac $cgdomain/$(basename $d)/cgroup.procs | tee | xargs -n 1 -r kill -9
           sleep 2
-          sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
+          if ! sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
+            echo " cgroup removal failed again: $cgdomain" >&2
+            exit 2
+          fi
         fi
         gzip $d/fuzz.log
         mv $d $fuzzdir/died
@@ -141,8 +155,9 @@ function lock() {
 
 function plotData() {
   for d in $(ls -d $fuzzdir/*/default/ 2>/dev/null); do
-    if ! afl-plot $d $(dirname $d) &>/dev/null; then
-      :
+    f=$(dirname $d)
+    if ! afl-plot $d $f &>/dev/null; then
+      echo "no plot for $f"
     fi
   done
 }
@@ -205,11 +220,27 @@ function startAFuzzer() {
   fi
 
   cd $output_dir
-  export AFL_TMPDIR=$output_dir
-  nice -n 3 /usr/bin/afl-fuzz -i $input_dir -o ./ $add -I $(dirname 0)/crash-found.sh -- ./$(basename $exe) &>./fuzz.log &
-  local pid=$!
-  echo -e "\n$(date)\n    started: $software $fuzzer (pid=$pid)\n"
-  sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid # create it
+  (
+    set -o pipefail
+
+    if [[ $software == "tor" ]]; then
+      export AFL_NO_FORKSRV=1
+    fi
+
+    export AFL_TMPDIR=$output_dir
+
+    nice -n 3 /usr/bin/afl-fuzz \
+      -i $input_dir \
+      -o ./ $add \
+      -I $(dirname $0)/crash-found.sh \
+      -- ./$(basename $exe) |
+      ansifilter
+  ) &>./fuzz.log &
+  local pid_subprozess=$!
+  echo -e "$(date)\n    started: $software $fuzzer sub-process $pid_subprozess"
+
+  echo -e "\n$(date)\n    chaining pid $pid_subprozess of $fuzzer"
+  sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid_subprozess
 }
 
 function stopAFuzzer() {
@@ -217,15 +248,29 @@ function stopAFuzzer() {
   local cgroupdir=${2?CGROUP DIR IS MISSING}
 
   local statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
-  # stat file is not immediately filled after fuzzer start
+
+  echo " stopping fuzzer $fuzzer"
+
+  # stat file not immediately available after start
   if [[ -s $statfile ]]; then
     local pid
+
     pid=$(awk '/^fuzzer_pid / { print $3 }' $statfile)
-    echo -n "    got pid from fuzzer_stats of $software $fuzzer: $pid "
-    kill -15 $pid
-    echo
+    if [[ -n $pid ]]; then
+      echo "   pid in fuzzer_stats for $fuzzer: $pid "
+      if kill -0 $pid 2>/dev/null; then
+        kill -15 $pid
+        sleep 10
+      else
+        echo "   pid $pid is not running"
+      fi
+    else
+      echo "   no pid in statfile: $statfile" >&2
+    fi
   else
+    echo "   no statfile found: $statfile" >&2
     local pids
+
     pids=$(<$cgroupdir/cgroup.procs)
     if [[ -n $pids ]]; then
       echo "   kill cgroup tasks of $software $fuzzer: $pids"
@@ -235,11 +280,13 @@ function stopAFuzzer() {
       if [[ -n $pids ]]; then
         echo "   get roughly with $pids"
         xargs -n 1 kill -9 < <(cat $cgroupdir/cgroup.procs)
+        sleep 1
       fi
     else
-      echo -n "   got no pid for $cgroupdir"
+      echo -n "   got no cgrop pid for $cgroupdir"
     fi
   fi
+
   if ! sudo $(dirname $0)/fuzz-cgroup.sh $fuzzer; then
     echo -e "\n woops ^^"
   fi
@@ -252,11 +299,7 @@ function runFuzzers() {
   local current
   current=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)
   local delta
-  if [[ $wanted =~ ^[0-9]+$ ]]; then
-    delta=$((wanted - current))
-  else
-    delta=1
-  fi
+  delta=$((wanted - current))
 
   if [[ $delta -gt 0 ]]; then
     echo -en "\n$(date)\n job changes: $delta x $software: "
@@ -264,7 +307,7 @@ function runFuzzers() {
     if [[ $force_build -eq 1 ]] || softwareWasCloned || softwareWasUpdated || ! getFuzzers $software | grep -q '.'; then
       cd ~/sources/$software
       echo -e "\n$(date)\n building $software ...\n"
-      USE_COLOR=0 ALWAYS_COLORED=0 AFL_NO_COLOR=1 buildSoftware
+      AFL_NO_COLOR=1 buildSoftware
     fi
 
     local tmpdir
@@ -315,26 +358,26 @@ lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp INT QUIT TERM EXIT
 
+# git log etc
 export GIT_PAGER="cat"
 export PAGER="cat"
 
+# compile time
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
 export CXXFLAGS="$CFLAGS"
-
-# effective at compile time
+export MAKEFLAGS="-j 4"
+export PERFORMANCE=1
 export AFL_QUIET=1
 
-# affects the start of a fuzzer
+# start of a fuzzer
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
 export AFL_SHUFFLE_QUEUE=1
 
-# affects the run of a fuzzer
-export AFL_MAP_SIZE=70144
-export PERFORMANCE=1
+# run of a fuzzer
 export AFL_NO_SYNC=1
 
 fuzzdir="/tmp/torproject/fuzzing"
@@ -361,7 +404,7 @@ while getopts abfo:pt: opt; do
     runFuzzers "$OPTARG"
     ;;
   *)
-    echo " sth wrong" >&2
+    echo " sth wrong with $opt $OPTARG" >&2
     exit 1
     ;;
   esac

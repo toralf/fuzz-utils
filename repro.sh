@@ -13,6 +13,7 @@ export CXXFLAGS="$CFLAGS"
 export MAKEFLAGS="-j 24"
 export PERFORMANCE=1
 export AFL_QUIET=1
+export LDFLAGS="-fuse-ld=lld"
 
 # affects the start of a fuzzer
 export AFL_EXIT_WHEN_DONE=1
@@ -27,12 +28,14 @@ cd /tmp
 
 if [[ $1 == "openssl" ]]; then
   if [[ ! -d ./openssl ]]; then
-    git clone https://github.com/openssl/openssl.git
-    cd ./openssl
-    git submodule update --init --recursive fuzz/corpora
-  else
-    cd ./openssl
+    (
+      git clone https://github.com/openssl/openssl.git
+      cd ./openssl
+      git submodule update --init --recursive fuzz/corpora
+    )
   fi
+
+  cd ./openssl
 
   if true; then
     # https://github.com/openssl/openssl/blob/master/fuzz/README.md
@@ -57,6 +60,8 @@ if [[ $1 == "openssl" ]]; then
 elif [[ $1 == "tor" ]]; then
   if [[ ! -d ./tor ]]; then
     git clone https://gitlab.torproject.org/tpo/core/tor.git
+  fi
+  if [[ ! -d ./fuzzing-corpora ]]; then
     git clone https://gitlab.torproject.org/tpo/core/fuzzing-corpora.git
   fi
 
@@ -81,5 +86,6 @@ elif [[ $1 == "tor" ]]; then
     nice -n 3 make $MAKEFLAGS fuzzers
   fi
 
-  afl-fuzz -i ../fuzzing-corpora/diff-apply -o ./ -- ./src/test/fuzz/fuzz-diff-apply
+  #afl-fuzz -i ../fuzzing-corpora/diff-apply -o ./ -- ./src/test/fuzz/fuzz-diff-apply
+  afl-fuzz -i ../fuzzing-corpora/diff-apply -o ./ -- ./src/test/fuzz/fuzz-consensus
 fi

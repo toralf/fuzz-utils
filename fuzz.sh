@@ -70,13 +70,16 @@ function checkForAborts() {
         echo " $d aborted"
         if grep -F 'Statistics:' $log | grep -v ', 0 crashes saved'; then
           echo -e "\n $d contains CRASH(s) !!!\n"
-        fi
-        if [[ ! -d $fuzzdir/aborted ]]; then
-          mkdir -p $fuzzdir/aborted
-        fi
-        if sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
-          gzip $log
-          mv $d $fuzzdir/aborted
+
+          if [[ ! -d $fuzzdir/crashed ]]; then
+            mkdir -p $fuzzdir/crashed
+          fi
+          if sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d); then
+            gzip $log
+            mv $d $fuzzdir/crashed
+          fi
+        else
+          rm -r $d
         fi
       fi
     done

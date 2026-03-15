@@ -81,5 +81,5 @@ elif [[ $1 == "tor" ]]; then
     nice -n 3 make $MAKEFLAGS fuzzers
   fi
 
-  afl-fuzz -i ../fuzzing-corpora/diff-apply -o ./ -- ./fuzz-diff-apply
+  afl-fuzz -i ../fuzzing-corpora/diff-apply -o ./ -- ./src/test/fuzz/fuzz-diff-apply
 fi

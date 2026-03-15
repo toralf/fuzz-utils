@@ -86,15 +86,13 @@ function checkForAborts() {
       died=''
 
       if [[ ! -s $d/fuzz.log ]]; then
-        died='no log'
+        died='no fuzz.log'
 
       elif [[ -s $d/default/fuzzer_stats ]]; then
         pid=$(awk '/^fuzzer_pid/ { print $3 }' $d/default/fuzzer_stats)
         if [[ -n $pid ]]; then
-          if ! grep -q -w $pid $cgdomain/$(basename $d)/cgroup.procs; then
-            died='no cgroup'
-          elif ! kill -0 $pid 1>/dev/null; then
-            died="pid $pid not running"
+          if ! kill -0 $pid 1>/dev/null; then
+            died="stale pid $pid"
           fi
         else
           died='no pid in stats'
@@ -238,8 +236,6 @@ function startAFuzzer() {
   ) &>./fuzz.log &
   local pid_subprozess=$!
   echo -e "$(date)\n    started: $software $fuzzer sub-process $pid_subprozess"
-
-  echo -e "\n$(date)\n    chaining pid $pid_subprozess of $fuzzer"
   sudo $(dirname $0)/fuzz-cgroup.sh $fuzz_dirname $pid_subprozess
 }
 

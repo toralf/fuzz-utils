@@ -62,23 +62,36 @@ EOF
     done
 }
 
-function checkForAborts() {
+function cleanSucceededFuzzer() {
   ls $fuzzdir/*/fuzz.log 2>/dev/null |
     while read -r log; do
-      if tail -n 17 $log | grep -q -e 'PROGRAM ABORT' -e '.* aborted' -e 'Have a nice day'; then
+      if tail -n 17 $log | grep -q -e 'Have a nice day'; then
         d=$(dirname $log)
         rm -r -- $d
       fi
     done
 }
 
-function checkForDied() {
+function cleanCgroups() {
+  ls -d $cgdomain/*_*_*-*_* 2>/dev/null |
+    while read -r d; do
+      n=$(wc -l <$d/cgroup.procs)
+      if [[ $n -eq 0 ]]; then
+        sudo $(dirname $0)/fuzz-cgroup.sh $(basename $d)
+      fi
+    done
+}
+
+function checkForDiedFuzzer() {
   ls -d $fuzzdir/*_*_*-*_* 2>/dev/null |
     while read -r d; do
       died=''
 
       if [[ ! -s $d/fuzz.log ]]; then
         died='no fuzz.log'
+
+      elif grep -q 'PROGRAM ABORT :' $d/fuzz.log && ! grep -q 'Have a nice day' $d/fuzz.log; then
+        died=$(grep -A 2 "PROGRAM ABORT :" $d/fuzz.log | xargs)
 
       elif [[ -s $d/default/fuzzer_stats ]]; then
         pid=$(awk '/^fuzzer_pid/ { print $3 }' $d/default/fuzzer_stats)
@@ -205,10 +218,6 @@ function startAFuzzer() {
   (
     set -o pipefail
 
-    if [[ $software == "tor" ]]; then
-      export AFL_NO_FORKSRV=1
-    fi
-
     export AFL_TMPDIR=$output_dir
 
     nice -n 3 /usr/bin/afl-fuzz \
@@ -263,7 +272,7 @@ function stopAFuzzer() {
         sleep 1
       fi
     else
-      echo -n "   got no cgrop pid for $cgroupdir"
+      echo -n "   got no cgroup pid for $cgroupdir"
     fi
   fi
 
@@ -309,8 +318,8 @@ function runFuzzers() {
   elif [[ $delta -lt 0 ]]; then
     ((delta = -delta))
     echo -e "\n$(date)\n stopping $delta x $software: "
-    ls -dt $cgdomain/${software}_* 2>/dev/null |
-      tail -n $delta |
+    ls -d $fuzzdir/${software}_* 2>/dev/null |
+      shuf -n $delta |
       while read -r d; do
         fuzzer=$(basename $d)
         stopAFuzzer $fuzzer $d
@@ -338,20 +347,28 @@ lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp INT QUIT TERM EXIT
 
-# git log etc
+# Tor ./configure
+export TERM="linux"
+export TERMINFO="/etc/terminfo"
+
+# git log
 export GIT_PAGER="cat"
 export PAGER="cat"
 
-# compile time
+# build fuzzer
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
 export CXXFLAGS="$CFLAGS"
-export MAKEFLAGS="-j 4"
+
+# breaks with afl++ 4.32c
+#export LDFLAGS="-fuse-ld=lld"
+
+export MAKEFLAGS="-j 24"
 export PERFORMANCE=1
 export AFL_QUIET=1
 
-# start of a fuzzer
+# run fuzzer
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
@@ -363,11 +380,12 @@ export AFL_NO_SYNC=1
 fuzzdir="/tmp/torproject/fuzzing"
 cgdomain="/sys/fs/cgroup/fuzzing"
 
-while getopts afo:pt: opt; do
+while getopts cfo:pt: opt; do
   case $opt in
-  a)
-    checkForAborts
-    checkForDied
+  c)
+    cleanSucceededFuzzer
+    checkForDiedFuzzer
+    cleanCgroups
     ;;
   f) checkForFindings ;;
   o)
@@ -384,7 +402,7 @@ while getopts afo:pt: opt; do
     runFuzzers "$OPTARG"
     ;;
   *)
-    echo " sth wrong with $opt $OPTARG" >&2
+    echo " sth wrong with $opt" >&2
     exit 1
     ;;
   esac

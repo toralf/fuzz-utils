@@ -3,25 +3,36 @@
 
 # repro for https://github.com/AFLplusplus/AFLplusplus/issues/2761
 
+hash -r afl-fuzz git make
+
+# Tor ./configure
+export TERM="linux"
+export TERMINFO="/etc/terminfo"
+
+# git log
 export GIT_PAGER="cat"
 export PAGER="cat"
 
+# build fuzzer
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
 export CFLAGS="-O2 -pipe -march=native"
 export CXXFLAGS="$CFLAGS"
-export MAKEFLAGS="-j 24"
+
+# breaks with afl++ 4.32c
+# export LDFLAGS="-fuse-ld=lld"
+
+export MAKEFLAGS="-j $(($(nproc) / 2))"
 export PERFORMANCE=1
 export AFL_QUIET=1
-export LDFLAGS="-fuse-ld=lld"
 
-# affects the start of a fuzzer
+# run fuzzer
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
 export AFL_SKIP_CPUFREQ=1
 export AFL_SHUFFLE_QUEUE=1
 
-# affects the run of a fuzzer
+# run of a fuzzer
 export AFL_NO_SYNC=1
 
 cd /tmp
@@ -86,6 +97,5 @@ elif [[ $1 == "tor" ]]; then
     nice -n 3 make $MAKEFLAGS fuzzers
   fi
 
-  #afl-fuzz -i ../fuzzing-corpora/diff-apply -o ./ -- ./src/test/fuzz/fuzz-diff-apply
   afl-fuzz -i ../fuzzing-corpora/diff-apply -o ./ -- ./src/test/fuzz/fuzz-consensus
 fi

@@ -234,7 +234,6 @@ function startAFuzzer() {
 
 function stopAFuzzer() {
   local fuzzer=${1?FUZZER IS MISSING}
-  local cgroupdir=${2?CGROUP DIR IS MISSING}
 
   local statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
 
@@ -258,21 +257,25 @@ function stopAFuzzer() {
     fi
   else
     echo "   no statfile found: $statfile"
-    local pids
 
-    pids=$(<$cgroupdir/cgroup.procs)
-    if [[ -n $pids ]]; then
-      echo "   kill cgroup tasks of $software $fuzzer: $pids"
-      xargs -n 1 kill -15 <<<$pids
-      sleep 10
-      pids=$(<$cgroupdir/cgroup.procs)
+    if [[ -d $cgdomain/$fuzzer ]]; then
+      local pids
+      pids=$(<$cgdomain/cgroup.procs)
       if [[ -n $pids ]]; then
-        echo "   get roughly with $pids"
-        xargs -n 1 kill -9 < <(cat $cgroupdir/cgroup.procs)
-        sleep 1
+        echo "   killing procs of $fuzzer: $pids"
+        xargs -n 1 kill -15 <<<$pids
+        sleep 10
+        pids=$(<$cgdomain/cgroup.procs)
+        if [[ -n $pids ]]; then
+          echo "   killing roughly of $fuzzer: $pids"
+          xargs -n 1 kill -9 < <(cat $cgdomain/cgroup.procs)
+          sleep 1
+        fi
+      else
+        echo -n "   no pids for $fuzzer"
       fi
     else
-      echo -n "   got no cgroup pid for $cgroupdir"
+      echo -n "   no cgroup for $fuzzer"
     fi
   fi
 
@@ -321,8 +324,7 @@ function runFuzzers() {
     ls -d $fuzzdir/${software}_* 2>/dev/null |
       shuf -n $delta |
       while read -r d; do
-        fuzzer=$(basename $d)
-        stopAFuzzer $fuzzer $d
+        stopAFuzzer $(basename $d)
       done
   fi
 }
@@ -362,9 +364,9 @@ export CFLAGS="-O2 -pipe -march=native"
 export CXXFLAGS="$CFLAGS"
 
 # breaks with afl++ 4.32c
-#export LDFLAGS="-fuse-ld=lld"
+# export LDFLAGS="-fuse-ld=lld"
 
-export MAKEFLAGS="-j 24"
+export MAKEFLAGS="-j 4"
 export PERFORMANCE=1
 export AFL_QUIET=1
 

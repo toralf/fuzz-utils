@@ -14,19 +14,15 @@ function checkForFindings() {
         options="-newer $tar_archive"
       fi
 
-      tmpfile=$(mktemp /tmp/$(basename $0)_XXXXXX)
-      find $d $options -wholename "*/default/crashes/*" -o -wholename "*/default/hangs/*" >$tmpfile
-      if [[ -s $tmpfile ]]; then
-        if grep -q 'crashes' $tmpfile; then
-          echo -e "\n new CRASH(s) found for $b\n"
-        elif grep -q 'hangs' $tmpfile; then
-          echo -e "\n new hang(s) found for $b\n"
-        else
-          echo "woops: $tmpfile" >&2
-          exit 1
-        fi
+      if find $d/default/crashes/ -type f $options | grep .; then
+        echo -e "\n  new CRASH in $b"
+      elif find $d/default/hangs/ -type f $options | grep .; then
+        echo -e "\n  new hang in $b"
+      else
+        continue
+      fi
 
-        cat - <<EOF
+      cat - <<EOF
 
   reproducer:
 
@@ -44,21 +40,19 @@ function checkForFindings() {
   done
 
 EOF
-        # retry to handle races
-        n=5
-        while ((n--)); do
-          if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --verbose $d ~/findings/; then
-            echo
-            break
-          fi
-        done
-        chmod -R g+r ~/findings/$b
-        find ~/findings/$b -type d -exec chmod g+x {} +
-        tar -C ~/findings/ -czpf $tar_archive ./$b
-        ls -lh $tar_archive
-        echo
-      fi
-      rm $tmpfile
+      # retry to handle races
+      n=3
+      while ((n--)); do
+        if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' $d ~/findings/; then
+          echo
+          break
+        fi
+      done
+      chmod -R g+r ~/findings/$b
+      find ~/findings/$b -type d -exec chmod g+x {} +
+      tar -C ~/findings/ -czpf $tar_archive ./$b
+      ls -lh $tar_archive
+      echo
     done
 }
 
@@ -90,7 +84,7 @@ function checkForDiedFuzzer() {
       if [[ ! -s $d/fuzz.log ]]; then
         died='no fuzz.log'
 
-      elif grep -q 'PROGRAM ABORT :' $d/fuzz.log && ! grep -q 'Have a nice day' $d/fuzz.log; then
+      elif tail -n 17 $d/fuzz.log | grep -q 'PROGRAM ABORT :' && ! tail -n 17 $d/fuzz.log | grep -q 'Have a nice day'; then
         died=$(grep -A 2 "PROGRAM ABORT :" $d/fuzz.log | xargs)
 
       elif [[ -s $d/default/fuzzer_stats ]]; then

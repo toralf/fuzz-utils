@@ -14,45 +14,43 @@ function checkForFindings() {
         options="-newer $tar_archive"
       fi
 
-      if find $d/default/crashes/ -type f $options | grep .; then
-        echo -e "\n  new CRASH in $b"
-      elif find $d/default/hangs/ -type f $options | grep .; then
-        echo -e "\n  new hang in $b"
-      else
-        continue
-      fi
+      new="n"
+      for t in crashes hangs; do
+        if find $d/default/$t -type f $options | grep . >/tmp/new_$t; then
+          new="y"
+          fuzzrepro=$(ls $d/*-test)
+          cat - <<EOF
 
-      cat - <<EOF
+new $t
 
   reproducer:
 
-  cd ~/findings/$b
-  for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do
-    time ./*-test \$i
-    echo
-  done
+  $(cat /tmp/new_$t | xargs -r -n 1 echo $fuzzrepro -i)
 
-  or GDB:
+  Gnu Debugger:
 
-  for i in \$(ls ./default/{crashes,hangs}/* 2>/dev/null); do
-    gdb -q -batch -ex 'set logging enabled off' -ex 'set pagination off' -ex 'thread apply all bt' -ex 'run' --args ./*-test \$i
-    echo
-  done
+  $(cat /tmp/new_$t | xargs -r -n 1 echo gdb -q -batch \
+    -ex 'set logging enabled off' -ex 'set pagination off' -ex 'thread apply all bt' -ex 'run' --args $fuzzrepro)
 
 EOF
-      # retry to handle races
-      n=3
-      while ((n--)); do
-        if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' $d ~/findings/; then
-          echo
-          break
         fi
       done
-      chmod -R g+r ~/findings/$b
-      find ~/findings/$b -type d -exec chmod g+x {} +
-      tar -C ~/findings/ -czpf $tar_archive ./$b
-      ls -lh $tar_archive
-      echo
+
+      if [[ $new == "y" ]]; then
+        # retry to handle races
+        n=3
+        while ((n--)); do
+          if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' $d ~/findings/; then
+            echo
+            break
+          fi
+        done
+        chmod -R g+r ~/findings/$b
+        find ~/findings/$b -type d -exec chmod g+x {} +
+        tar -C ~/findings/ -czpf $tar_archive ./$b
+        ls -lh $tar_archive
+        echo
+      fi
     done
 }
 

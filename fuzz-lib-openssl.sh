@@ -31,7 +31,7 @@ function getFuzzers() {
 
       if [[ -x $exe && -d $idir ]]; then
         # for timeouts see https://github.com/openssl/openssl/issues/25707
-        echo $fuzzer $exe $idir -t 100
+        echo $fuzzer $exe $idir -t 200
       fi
     done
 }

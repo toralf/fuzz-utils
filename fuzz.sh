@@ -30,7 +30,7 @@ new $t
   Gnu Debugger:
 
   $(cat /tmp/new_$t | xargs -r -n 1 echo gdb -q -batch \
-    -ex 'set logging enabled off' -ex 'set pagination off' -ex 'thread apply all bt' -ex 'run' --args $fuzzrepro)
+    -ex \'set logging enabled off\' -ex \'set pagination off\' -ex \'thread apply all bt\' -ex \'run\' --args $fuzzrepro)
 
 EOF
         fi

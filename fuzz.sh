@@ -16,21 +16,20 @@ function checkForFindings() {
 
       new="n"
       for t in crashes hangs; do
-        if find $d/default/$t -type f $options | grep . >/tmp/new_$t; then
+        if find $d/default/$t -type f -name 'id:*' $options | grep . >/tmp/new_$t; then
           new="y"
           fuzzrepro=$(ls $d/*-test)
-          cat - <<EOF
+          cat - <<EOF | sed -e "s,$d/,./,g"
 
-new $t
+# found new $t
 
-  reproducer:
+cd ~/findings/$b
 
-  $(cat /tmp/new_$t | xargs -r -n 1 echo $fuzzrepro -i)
+  # afl++:
+$(cat /tmp/new_$t | xargs -r -n 1 echo -e "\n " $fuzzrepro -i)
 
-  Gnu Debugger:
-
-  $(cat /tmp/new_$t | xargs -r -n 1 echo gdb -q -batch \
-    -ex \'set logging enabled off\' -ex \'set pagination off\' -ex \'thread apply all bt\' -ex \'run\' --args $fuzzrepro)
+  # gdb:
+$(cat /tmp/new_$t | xargs -r -n 1 echo -e "\n " gdb -q -batch -ex \'set logging enabled off\' -ex \'set pagination off\' -ex \'thread apply all bt\' -ex \'run\' --args $fuzzrepro)
 
 EOF
         fi
@@ -40,7 +39,7 @@ EOF
         # retry to handle races
         n=3
         while ((n--)); do
-          if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' $d ~/findings/; then
+          if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --exclude '*/fuzz.log' $d ~/findings/; then
             echo
             break
           fi
@@ -211,6 +210,8 @@ function startAFuzzer() {
     set -o pipefail
 
     export AFL_TMPDIR=$output_dir
+
+    sleep 3 # ensure that cgroup is created before
 
     nice -n 3 /usr/bin/afl-fuzz \
       -i $input_dir \

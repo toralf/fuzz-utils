@@ -39,7 +39,7 @@ EOF
         # retry to handle races
         n=3
         while ((n--)); do
-          if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --exclude '*/fuzz.log' $d ~/findings/; then
+          if rsync --archive --exclude '*/queue/*' --exclude '*/.synced/*' --exclude '*/fuzz.log' --exclude '*/.cur_input' $d ~/findings/; then
             echo
             break
           fi

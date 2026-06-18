@@ -7,7 +7,7 @@ import logging
 import os
 import re
 import socket
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 
 class MyServer6(ThreadingHTTPServer):

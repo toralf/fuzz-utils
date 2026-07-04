@@ -20,7 +20,7 @@ function buildSoftware() {
 
   make clean
   make micro-revision.i # https://gitlab.torproject.org/tpo/core/tor/-/issues/29520
-  nice -n 3 make $MAKEFLAGS fuzzers
+  nice -n 3 make -j 1 $MAKEFLAGS fuzzers
 }
 
 function getFuzzers() {

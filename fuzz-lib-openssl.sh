@@ -18,7 +18,7 @@ function buildSoftware() {
         rm -f $f{,-test}
       fi
     done
-  nice -n 3 make $MAKEFLAGS
+  nice -n 3 make -j 1 $MAKEFLAGS
 }
 
 function getFuzzers() {

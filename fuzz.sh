@@ -394,7 +394,7 @@ while getopts cfo:pt: opt; do
     software="tor"
     # shellcheck source=./fuzz-lib-tor.sh
     source $(dirname $0)/fuzz-lib-${software}.sh
-    AFL_NO_FORKSRV=1 runFuzzers "$OPTARG"
+    runFuzzers "$OPTARG"
     ;;
   *)
     echo " sth wrong with $opt" >&2

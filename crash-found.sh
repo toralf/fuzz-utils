@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # set -x
 
-# hook if a crash was found
+# hook is called by afl++ if a crash was detected
 
-$(dirname $0)/fuzz.sh -a
+if ! $(dirname $0)/fuzz.sh -f; then
+  logger "$0 had an issue"
+fi
+
+exit 0

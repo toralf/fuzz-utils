@@ -30,8 +30,8 @@ function getFuzzers() {
       idir=~/sources/$software/fuzz/corpora/$fuzzer
 
       if [[ -x $exe && -d $idir ]]; then
-        # for timeouts see https://github.com/openssl/openssl/issues/25707
-        echo $fuzzer $exe $idir -t 500
+        # msec, https://github.com/openssl/openssl/issues/25707
+        echo $fuzzer $exe $idir -t 1000
       fi
     done
 }

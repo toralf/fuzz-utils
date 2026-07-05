@@ -7,7 +7,7 @@ function buildSoftware() {
   rm -f configure Makefile
   ./autogen.sh
 
-  ./configure \
+  TERM="linux" TERMINFO="/etc/terminfo" ./configure \
     --prefix=/usr \
     --mandir=/usr/share/man --infodir=/usr/share/info --datadir=/usr/share --sysconfdir=/etc \
     --localstatedir=/var --datarootdir=/usr/share \

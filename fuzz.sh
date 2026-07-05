@@ -140,7 +140,7 @@ function lock() {
 }
 
 function plotData() {
-  for d in $(ls -d $fuzzdir/*/default/ 2>/dev/null); do
+  for d in $fuzzdir/*/default/; do
     f=$(dirname $d)
     if ! afl-plot $d $f &>/dev/null; then
       echo "no plot for $f"
@@ -342,35 +342,20 @@ lck=/tmp/$(basename $0).lock
 lock
 trap cleanUp INT QUIT TERM EXIT
 
-# Tor ./configure
-export TERM="linux"
-export TERMINFO="/etc/terminfo"
-
-# git log
-export GIT_PAGER="cat"
-export PAGER="cat"
-
-# build fuzzer
+# build
 export CC="/usr/bin/afl-clang-fast"
 export CXX="${CC}++"
-export CFLAGS="-O2 -pipe -march=native"
-export CXXFLAGS="$CFLAGS"
-
-# breaks with afl++ 4.32c
-# export LDFLAGS="-fuse-ld=lld"
-
+export LD="${CC}"
 export MAKEFLAGS="-j 4"
-export PERFORMANCE=1
-export AFL_QUIET=1
 
-# run fuzzer
+# runtime
+export AFL_BENCH_UNTIL_CRASH=1
 export AFL_EXIT_WHEN_DONE=1
 export AFL_HARDEN=1
-export AFL_SKIP_CPUFREQ=1
-export AFL_SHUFFLE_QUEUE=1
-
-# run of a fuzzer
 export AFL_NO_SYNC=1
+export AFL_SHUFFLE_QUEUE=1
+export AFL_SKIP_CPUFREQ=1
+export AFL_QUIET=1
 
 fuzzdir="/tmp/torproject/fuzzing"
 cgdomain="/sys/fs/cgroup/fuzzing"

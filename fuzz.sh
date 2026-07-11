@@ -343,7 +343,7 @@ lock
 trap cleanUp INT QUIT TERM EXIT
 
 # build
-export CC="/usr/bin/afl-clang-fast"
+export CC="/usr/bin/afl-cc"
 export CXX="${CC}++"
 export LD="${CC}"
 export MAKEFLAGS="-j 4"

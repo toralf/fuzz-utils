@@ -3,8 +3,8 @@
 # set -x
 
 function CreateCgroup() {
-  local name=$cgdomain/${1?}
-  local pid=${2?}
+  local name=$cgdomain/${1:?NAME}
+  local pid=${2:?PID}
 
   # put all fuzzers under 1 sub group
   if [[ ! -d $cgdomain ]]; then
@@ -32,7 +32,7 @@ function CreateCgroup() {
 }
 
 function RemoveCgroup() {
-  local name=$cgdomain/${1?}
+  local name=$cgdomain/${1:?NAME}
 
   if [[ -d $name ]]; then
     sleep 1

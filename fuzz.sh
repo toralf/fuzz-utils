@@ -186,9 +186,9 @@ function getFuzzerCandidates() {
 }
 
 function startAFuzzer() {
-  local fuzzer=${1?}
-  local exe=${2?}
-  local input_dir=${3?}
+  local fuzzer=${1:?FUZZER}
+  local exe=${2:?EXE}
+  local input_dir=${3:?INPUT_DIR}
   shift 3
   local add=${*-}
 
@@ -226,7 +226,7 @@ function startAFuzzer() {
 }
 
 function stopAFuzzer() {
-  local fuzzer=${1?FUZZER IS MISSING}
+  local fuzzer=${1:?FUZZER}
 
   local statfile=$fuzzdir/$fuzzer/default/fuzzer_stats
 
@@ -279,7 +279,7 @@ function stopAFuzzer() {
 }
 
 function runFuzzers() {
-  local wanted=${1?}
+  local wanted=${1:?WANTED}
 
   local current
   current=$(ls -d $fuzzdir/${software}_* 2>/dev/null | wc -w)

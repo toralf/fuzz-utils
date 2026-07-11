@@ -22,7 +22,7 @@ function buildSoftware() {
 }
 
 function getFuzzers() {
-  local software=${1?}
+  local software=${1:?SOFTWARE}
 
   ls ~/sources/$software/fuzz/corpora/ |
     while read -r fuzzer; do

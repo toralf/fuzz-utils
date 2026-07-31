@@ -141,10 +141,8 @@ function lock() {
 
 function plotData() {
   for d in $fuzzdir/*/default/; do
-    f=$(dirname $d)
-    if ! afl-plot $d $f &>/dev/null; then
-      echo "no plot for $f"
-    fi
+    output_dir=$(dirname $d)
+    afl-plot $d $output_dir &>/dev/null || true
   done
 }
 
@@ -324,7 +322,7 @@ function runFuzzers() {
 
 #######################################################################
 #
-set -eu
+set -eu # no -f here
 export LANG=C.utf8
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 

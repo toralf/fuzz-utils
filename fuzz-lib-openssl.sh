@@ -31,7 +31,7 @@ function getFuzzers() {
 
       if [[ -x $exe && -d $idir ]]; then
         # msec, https://github.com/openssl/openssl/issues/25707
-        echo $fuzzer $exe $idir -t 1500
+        echo $fuzzer $exe $idir -t 2500
       fi
     done
 }

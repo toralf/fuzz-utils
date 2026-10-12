@@ -21,8 +21,8 @@ class MyHandler(SimpleHTTPRequestHandler):
             return SimpleHTTPRequestHandler.do_GET(self)
         except BrokenPipeError:
             logging.info("pipe broken")
-        except Exception as e:
-            logging.exception("MyHandler: %s", format(e), exc_info=False)
+        except Exception:
+            logging.exception("MyHandler")
 
         return None
 
@@ -58,8 +58,8 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         logging.info("catched Ctrl-C")
-    except Exception as e:
-        logging.exception("main: %s", format(e), exc_info=False)
+    except Exception:
+        logging.exception("main")
 
 
 if __name__ == "__main__":

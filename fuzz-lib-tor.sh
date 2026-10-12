@@ -24,8 +24,9 @@ function buildSoftware() {
 }
 
 function getFuzzers() {
-  local software=${1:?SOFTWARE}
+  local software
 
+  software=${1:?SOFTWARE}
   ls ~/sources/fuzzing-corpora |
     while read -r fuzzer; do
       exe=~/sources/$software/src/test/fuzz/fuzz-$fuzzer

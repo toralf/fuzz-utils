@@ -22,9 +22,12 @@ function buildSoftware() {
 }
 
 function getFuzzers() {
-  local software=${1:?SOFTWARE}
+  local software
 
+  software=${1:?SOFTWARE}
+  # shellcheck disable=SC2010
   ls ~/sources/$software/fuzz/corpora/ |
+    grep -v -e "x509$" -e "dtlsclient" |
     while read -r fuzzer; do
       exe=~/sources/$software/fuzz/$fuzzer
       idir=~/sources/$software/fuzz/corpora/$fuzzer

@@ -140,6 +140,7 @@ function lock() {
 }
 
 function plotData() {
+  # shellcheck disable=SC2231
   for d in $fuzzdir/*/default/; do
     output_dir=$(dirname $d)
     afl-plot $d $output_dir &>/dev/null || true

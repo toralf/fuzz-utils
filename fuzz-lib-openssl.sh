@@ -27,7 +27,7 @@ function getFuzzers() {
   software=${1:?SOFTWARE}
   # shellcheck disable=SC2010
   ls ~/sources/$software/fuzz/corpora/ |
-    grep -v -e "x509$" -e "dtlsclient" |
+    grep -E -v '^(acert|client|cmp|cms.*|dtlsclient|pkcs.*|server|smime|x509)$'
     while read -r fuzzer; do
       exe=~/sources/$software/fuzz/$fuzzer
       idir=~/sources/$software/fuzz/corpora/$fuzzer

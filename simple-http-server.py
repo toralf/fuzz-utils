@@ -21,6 +21,8 @@ class MyHandler(SimpleHTTPRequestHandler):
             return SimpleHTTPRequestHandler.do_GET(self)
         except BrokenPipeError:
             logging.info("pipe broken")
+        except ConnectionResetError:
+            logging.info("connect reset")
         except Exception:
             logging.exception("MyHandler")
 
